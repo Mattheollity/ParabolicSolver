@@ -13,10 +13,10 @@ set(CMAKE_CXX_STANDARD 17)
 #     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /arch:AVX2")
 # endif()
 
-find_package(Eigen3 REQUIRED)
 find_package(OpenMP REQUIRED)
 find_package(Catch2 REQUIRED)
 
+add_subdirectory(libs/eigen)
 add_subdirectory(src/grid)
 add_subdirectory(src/poisson)
 add_subdirectory(src/scheme)
