@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.6.4)
-project(PoissonApprox LANGUAGES CXX)
+project(PoissonApprox CXX)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_STANDARD 17)
