@@ -13,6 +13,12 @@ set(CMAKE_CXX_STANDARD 17)
 #     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /arch:AVX2")
 # endif()
 
+set(OpenMP_C_FLAGS "-fopenmp")
+set(OpenMP_CXX_FLAGS "-fopenmp")
+set(OpenMP_C_LIB_NAMES "gomp")
+set(OpenMP_CXX_LIB_NAMES "gomp")
+set(OpenMP_gomp_LIBRARY "/usr/lib64/libgomp.so.1")
+
 find_package(OpenMP REQUIRED)
 find_package(Catch2 REQUIRED)
 
