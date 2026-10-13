@@ -1,0 +1,83 @@
+image: fedora:43
+
+# [skip tests] in a commit message bypasses the test job.
+
+variables:
+  GIT_DEPTH: 3
+  CTEST_OUTPUT_ON_FAILURE: y
+
+stages:
+- test
+- release
+
+# GitLab refuses to create a pipeline with no jobs.
+tests-skipped:
+  stage: test
+  script:
+  - echo "test job skipped by the commit message"
+  rules:
+  - if: $CI_COMMIT_MESSAGE !~ /\[skip[ -]tests?\]/i
+    when: never
+  - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+  - if: $CI_COMMIT_TAG
+
+test:
+  stage: test
+  rules:
+  - if: $CI_COMMIT_MESSAGE =~ /\[skip[ -]tests?\]/i
+    when: never
+  - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+  - if: $CI_COMMIT_TAG
+  script:
+  - dnf install -y clang make cmake git
+  - cmake -Bbuild -H. -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_CXX_STANDARD=17 -DEXPOKIT_EIGEN_VERSION=5.0.1
+  # each example is a heavy translation unit, one is enough of a smoke test
+  - cmake --build build --target expokit-tests example_double
+  - ctest --test-dir build --output-on-failure
+  - build/example_double
+
+# TAG_PUSH_TOKEN: project access token, api scope, scoped to Production.
+tag-release:
+  stage: release
+  image: curlimages/curl:latest
+  environment:
+    name: Production
+    url: $CI_PROJECT_URL/-/tags
+  variables:
+    GIT_STRATEGY: none
+  script:
+  - |
+    set -eu
+    if [ -z "${TAG_PUSH_TOKEN:-}" ]; then
+      echo "TAG_PUSH_TOKEN is not readable from this job."
+      echo "It has to be scoped to the Production environment, spelled exactly"
+      echo "that; and if it is marked Protected, master has to be a protected"
+      echo "branch, or GitLab withholds it here."
+      exit 1
+    fi
+    PROJECT="$CI_API_V4_URL/projects/$CI_PROJECT_ID"
+    AUTH="PRIVATE-TOKEN: $TAG_PUSH_TOKEN"
+    raw () { curl -sSf --header "$AUTH" "$PROJECT/repository/files/$1/raw?ref=$CI_COMMIT_SHA"; }
+
+    CMAKE_V=$(raw CMakeLists.txt | sed -n 's/^project *(eigen-expokit VERSION \([0-9][0-9.]*\).*/\1/p')
+    CHANGELOG_V=$(raw CHANGELOG.md | sed -n 's/^## v\([0-9][0-9.]*\) *$/\1/p' | head -1)
+    echo "CMakeLists.txt $CMAKE_V, CHANGELOG.md $CHANGELOG_V"
+
+    if [ -z "$CMAKE_V" ] || [ -z "$CHANGELOG_V" ]; then
+      echo "no version found in every file that carries one"
+      exit 1
+    fi
+    if [ "$CMAKE_V" != "$CHANGELOG_V" ]; then
+      echo "versions disagree, someone bumped one file and not the other"
+      exit 1
+    fi
+    if curl -sf --header "$AUTH" "$PROJECT/repository/tags/v$CMAKE_V" > /dev/null; then
+      echo "v$CMAKE_V is already tagged"
+      exit 0
+    fi
+    curl -sSf --request POST --header "$AUTH" \
+      --data-urlencode "tag_name=v$CMAKE_V" --data-urlencode "ref=$CI_COMMIT_SHA" \
+      "$PROJECT/repository/tags" > /dev/null
+    echo "tagged v$CMAKE_V"
+  rules:
+  - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH

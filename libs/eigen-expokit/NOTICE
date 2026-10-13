@@ -1,0 +1,68 @@
+eigen-expokit
+=============
+
+No third-party source tree is bundled here.  But EXPOKIT is still involved
+in two ways:
+
+
+1. EXPOKIT is fetched on demand -- NON-COMMERCIAL ONLY
+------------------------------------------------------
+
+Configuring with -DEXPOKIT_BUILD_FORTRAN=ON downloads the original EXPOKIT
+distribution (Fortran 77 and MATLAB) by Roger B. Sidje, Department of
+Mathematics, University of Queensland, from
+https://www.maths.uq.edu.au/expokit/expokit.tar.gz.
+
+EXPOKIT's notice, quoted verbatim from the tree's `copyright` file, grants
+use for NON-COMMERCIAL PURPOSES ONLY.  That restriction means EXPOKIT is
+not open source under either the OSI or the FSF definition, and it is not
+compatible with MPL-2.0.  Enabling that option therefore pulls restricted
+material into the build tree:
+
+    Permission to use, copy, modify, and distribute EXPOKIT and its
+    supporting documentation for non-commercial purposes, is hereby
+    granted without fee, provided that this permission message and
+    copyright notice appear in all copies. Approval must be sought for
+    commercial purposes.
+
+    Neither the Institution (University of Queensland) nor the Authors
+    make any representations about the suitability of this software for
+    any purpose.  This software is provided ``as is'' without express or
+    implied warranty.
+
+                             Roger B. Sidje
+           Department of Mathematics, University of Queensland
+     Brisbane, QLD-4072, Australia, (c) 1996-1999 All Rights Reserved
+
+
+2. eexpokit/ is derived from EXPOKIT
+------------------------------------
+
+The C++ routines in eexpokit/ -- padm(), chbv(), expv(), mexpv(),
+loadcrs() -- are ports of the corresponding EXPOKIT MATLAB scripts
+(padm.m, chbv.m, expv.m, mexpv.m, loadcrs.m).  They derive from Sidje's
+work: the algorithms, the coefficient tables and the structure of the code
+follow it directly, and several files retain descriptive comments
+verbatim.
+
+This NOTICE records the fact.  It makes no claim, in either direction,
+about whether the MPL-2.0 grant on eexpokit/ is consistent with the
+non-commercial restriction above.  That question is unresolved and should
+be settled with the copyright holder before eigen-expokit is used
+commercially or offered for upstreaming.
+
+Cite as:
+
+    R. B. Sidje, "Expokit: Software Package for Computing Matrix
+    Exponentials", ACM Trans. Math. Softw., 24(1):130-156, 1998.
+
+    @ARTICLE{EXPOKIT,
+            AUTHOR  = {Sidje, R. B.},
+            TITLE   = {{\sc Expokit.} {S}oftware {P}ackage for
+                      {C}omputing {M}atrix {E}xponentials},
+            JOURNAL = {ACM Trans. Math. Softw.},
+            VOLUME  = {24},
+            NUMBER  = {1},
+            PAGES   = {130-156}
+            YEAR    = {1998}
+    }

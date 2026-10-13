@@ -1,0 +1,8 @@
+@PACKAGE_INIT@
+
+# eigen-expokit is header-only; Eigen itself is left to the consumer so
+# that any Eigen 3.3+/5 provisioning (find_package, FetchContent, vendored
+# tree) keeps working.
+include ("${CMAKE_CURRENT_LIST_DIR}/eigen-expokit-targets.cmake")
+
+check_required_components (eigen-expokit)
