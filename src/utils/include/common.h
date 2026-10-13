@@ -18,10 +18,9 @@
 
 #include <omp.h>
 
-#include "eigen3/Eigen/Dense"
-#include "eigen3/Eigen/Sparse"
+#include "Eigen/Dense"
+#include "Eigen/Sparse"
 #include "Eigen/src/SparseLU/SparseLU.h"
-#include <Eigen/Core>
 
 typedef Eigen::SparseMatrix<double> spmat;
 typedef Eigen::MatrixXd mat;
