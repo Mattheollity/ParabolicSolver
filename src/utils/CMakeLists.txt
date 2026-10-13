@@ -20,3 +20,4 @@ target_include_directories(
 target_link_libraries(utils PUBLIC OpenMP::OpenMP_CXX)
 target_link_libraries(utils PUBLIC Eigen3::Eigen)
 target_link_libraries(utils PUBLIC eigen-expokit::eexpokit)
+target_link_libraries(utils PUBLIC stdc++fs)

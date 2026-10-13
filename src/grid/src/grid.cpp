@@ -462,7 +462,7 @@ vector<int> grid::build_permutation_along_subd()
 
 void grid::assert_all_vertexes_has_subdomain() const
 {
-    #pragma omp parallel for shared(vertexes, subdomains)
+    #pragma omp parallel for firstprivate(vertexes, subdomains)
     for(int i=0; i<vertexes.size(); i++)
     if(vertexes[i].boundary==false && vertexes[i].containing_subdomain==-1) throw("Any vertex must has subdomain or be boundary vertex");
 }

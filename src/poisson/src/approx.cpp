@@ -2,7 +2,6 @@
 #include "file_io.h"
 #include "poisson.h"
 #include <cmath>
-#include <numbers>
 #include "eexpokit/expv.hpp"
 
 double trip_sin(const point p)
