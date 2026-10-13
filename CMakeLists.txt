@@ -10,6 +10,7 @@ find_package(OpenMP REQUIRED)
 
 add_subdirectory(libs/eigen)
 add_subdirectory(libs/Catch2)
+add_subdirectory(libs/eigen-expokit)
 
 add_subdirectory(src/grid)
 add_subdirectory(src/poisson)

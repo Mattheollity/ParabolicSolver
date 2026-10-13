@@ -4,8 +4,6 @@ project(TimeScheme CXX)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_STANDARD 17)
 
-find_package(eigen-expokit 0.1 REQUIRED)
-
 add_library(
     time_scheme
     STATIC
