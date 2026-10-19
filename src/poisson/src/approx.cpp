@@ -2,6 +2,7 @@
 #include "file_io.h"
 #include "poisson.h"
 #include <cmath>
+#include <vector>
 #include "eexpokit/expv.hpp"
 
 double trip_sin(const point p)
@@ -27,16 +28,19 @@ vect y0(const grid & gr, vect & v)
     return v;
 }
 
-double approx(const vector<double> h, const vertex & main, const vertex & neighbor)
+double approx_func(const approx & ap, const vertex & main, const vertex & neighbor)
 {
     //Задача Дирихле, однородные гру
     //ut = vec(k)*vec(laplac)u
 
-    if(h.size()==0) throw simple_error("h is empty!");
-    int dim = h.size();
-    vector<double> k (dim, 1);
+    if(ap.h.size()==0) throw simple_error("h is empty!");
+    int dim = ap.h.size();
+    if(ap.k.size()!=dim) throw simple_error("k is corrupted");
 
     double coeff = 0;
+
+    auto & h = ap.h;
+    auto & k = ap.k;
 
     if(main.i==neighbor.i)
     {

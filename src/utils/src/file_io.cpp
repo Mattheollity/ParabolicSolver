@@ -91,12 +91,61 @@ time_integr_conds load_tic(string tic_file)
     double T;
     double theta;
     double write_each;
-    file>>start_time>>N>>T>>theta>>write_each;
-    
+
+    string block;
+    int ibuf;
+    double dbuf;
+
+    file>>block;
+    if(block=="start_time") file>>start_time;
+    else throw simple_error("expected start_time");
+
+    file>>block;
+    if(block=="amount_of_time_steps") file>>N;
+    else throw simple_error("expected amount_of_time_steps");
+
+    file>>block;
+    if(block=="T") file>>T;
+    else throw simple_error("expected T");
+
+    file>>block;
+    if(block=="theta") file>>theta;
+    else throw simple_error("expected theta");
+
+    file>>block;
+    if(block=="write_each") file>>write_each;
+    else throw simple_error("expected write_each");
+
     time_integr_conds tic(start_time, T, N, theta);
     tic.write_each = write_each;
     return tic;
 }
+
+approxs load_approx_conds(string appr_file, const grid & g)
+{
+    std::ifstream file(appr_file);
+
+    vector<double> k (g.get_dim());
+
+    string block;
+    int ibuf;
+    double dbuf; 
+    
+    file>>block;
+    if(block=="write_each")
+    {
+        for(int i=0; i<k.size(); i++)
+        file>>k[i];
+    }
+    else throw simple_error("expected k");
+    
+    approx appr;
+    appr.h = g.get_h();
+    appr.k = k;
+    return appr;
+}
+
+
 
 void write_matrix(const spmat & m, string s)
 {

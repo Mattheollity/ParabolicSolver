@@ -8,12 +8,6 @@
 
 typedef vector<vector<spmat>> spsys;
 
-struct approxs_conds
-{
-    double (*approx)(const vector<double> h, const vertex &, const vertex &);
-    double (*dirichlet)(point, double t);
-};
-
 struct sparse_system
 {
     spsys system;
@@ -22,8 +16,7 @@ struct sparse_system
     int amount_of_parts;
     vector<int> sizes;
     vector<point> boundary_points;
-    double (*dirichlet_conds)(point, double t);
-    double (*approx)(const vector<double> h, const vertex &, const vertex &);
+    approx appr;
     vect boundary_at_time(double t) const;
 };
 
@@ -46,7 +39,7 @@ class poisson_system
 
     public:
 
-    poisson_system(const grid &, const approxs_conds &);
+    poisson_system(const grid &, const approx &);
     poisson_system(string s) {load_from_file(s);}
 
     const sparse_system & build_system(const grid &);

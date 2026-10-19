@@ -1,12 +1,11 @@
 #include "poisson.h"
 
-poisson_system::poisson_system(const grid & g, const approxs_conds & appc) :
+poisson_system::poisson_system(const grid & g, const approx & appc) :
     poissonlog(std::stringstream())
 {
     double t0, t1, t2;
     
-    p_system.dirichlet_conds = appc.dirichlet;
-    p_system.approx = appc.approx;
+    p_system.appr = appc;
 
     t1 = omp_get_wtime();
     t0 = t1;
@@ -117,7 +116,7 @@ void poisson_system::fill_spmat(spmat & spm, const interaction & io)
             triplet(
             i,
             input.first,
-            p_system.approx(io.h, io.outputs[i], input.second)
+            p_system.appr(io.outputs[i], input.second)
             )
         );
     }}
@@ -222,7 +221,7 @@ vect sparse_system::boundary_at_time(double t) const
     vect bat(boundary_points.size());
     bat.setZero();
     for(int i=0; i<boundary_points.size(); i++)
-    bat.coeffRef(i) = dirichlet_conds(boundary_points[i], t);
+    bat.coeffRef(i) = appr.dirichlet_conds(boundary_points[i], t);
 
     return bat;
 }

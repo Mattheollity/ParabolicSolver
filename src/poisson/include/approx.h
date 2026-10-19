@@ -4,11 +4,20 @@
 #include "common.h"
 #include "poisson.h"
 
+struct approx
+{
+    const vector<double> h;
+    const vector<double> k;
+    double (*approx_func)(const approx &, const vertex &, const vertex &);
+    double (*dirichlet)(point, double t);
+    double operator()(const vertex & main, const vertex & neigh) {return approx_func(*this, main, neigh);}
+};
+
 double trip_sin(const point p);
 double real_solution(int dim, const point p, double t);
 vect y0(const grid & gr, vect & v);
 
-double approx(vector<double> h, const vertex & main, const vertex & neighbor);
+double approx_func(vector<double> h, const vertex & main, const vertex & neighbor);
 double dirich_boundary_conds(point, double t);
 vect get_solution_at_time_step(const grid &, const time_integr_conds & tic, int N);
 vect get_time_deriv_at_time_step(const grid &, const time_integr_conds & tic, int N);
