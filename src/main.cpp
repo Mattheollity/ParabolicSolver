@@ -26,9 +26,10 @@ int main()
     time_integr_conds tic = load_tic(tic_file);
     tic.set_zero_time_data(trip_sin, g.get_inner_points());
     
-    approx appr = load_approx_conds(appr_file, g);
+    approx appr = load_approx_conds(appr_file);
     appr.approx_func = approx_func;
     appr.dirichlet = dirich_boundary_conds;
+    appr.h = g.get_h();
 
     poisson_system ps(g, appr);
     tsws solver(ps.get_system(), tic);

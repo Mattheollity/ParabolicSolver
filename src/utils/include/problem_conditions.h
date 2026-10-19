@@ -6,6 +6,16 @@
 typedef vector<double> point;
 typedef vector<int> voxel_point;
 class grid;
+class vertex;
+
+struct approx
+{
+    vector<double> h;
+    vector<double> k;
+    double (*approx_func)(const approx &, const vertex &, const vertex &);
+    double (*dirichlet)(point, double t);
+    double operator()(const vertex & main, const vertex & neigh) {return approx_func(*this, main, neigh);}
+};
 
 struct grid_conds
 {

@@ -121,18 +121,27 @@ time_integr_conds load_tic(string tic_file)
     return tic;
 }
 
-approxs load_approx_conds(string appr_file, const grid & g)
+approx load_approx_conds(string appr_file)
 {
     std::ifstream file(appr_file);
-
-    vector<double> k (g.get_dim());
-
     string block;
+
+    int dim;
+    file>>block;
+    if(block=="dim")
+    {
+        file>>dim;
+    }
+    else throw simple_error("expected dim");
+
+    vector<double> k (dim);
+
+    
     int ibuf;
     double dbuf; 
     
     file>>block;
-    if(block=="write_each")
+    if(block=="k")
     {
         for(int i=0; i<k.size(); i++)
         file>>k[i];
@@ -140,7 +149,6 @@ approxs load_approx_conds(string appr_file, const grid & g)
     else throw simple_error("expected k");
     
     approx appr;
-    appr.h = g.get_h();
     appr.k = k;
     return appr;
 }

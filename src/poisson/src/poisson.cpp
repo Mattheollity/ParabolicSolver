@@ -221,7 +221,7 @@ vect sparse_system::boundary_at_time(double t) const
     vect bat(boundary_points.size());
     bat.setZero();
     for(int i=0; i<boundary_points.size(); i++)
-    bat.coeffRef(i) = appr.dirichlet_conds(boundary_points[i], t);
+    bat.coeffRef(i) = appr.dirichlet(boundary_points[i], t);
 
     return bat;
 }

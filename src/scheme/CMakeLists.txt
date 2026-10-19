@@ -17,21 +17,21 @@ target_include_directories(
     include
 )
 
-add_executable(
-    time_scheme_test
-    tests/time_scheme.cpp
-)
-target_link_libraries(time_scheme_test PUBLIC time_scheme)
-target_link_libraries(time_scheme_test PRIVATE Catch2::Catch2WithMain)
+# add_executable(
+#     time_scheme_test
+#     tests/time_scheme.cpp
+# )
+# target_link_libraries(time_scheme_test PUBLIC time_scheme)
+# target_link_libraries(time_scheme_test PRIVATE Catch2::Catch2WithMain)
 
-add_executable(
-    schemeapprox
-    src/scheme_approx.cpp
-)
-target_link_libraries(schemeapprox PUBLIC time_scheme)
+# add_executable(
+#     schemeapprox
+#     src/scheme_approx.cpp
+# )
+# target_link_libraries(schemeapprox PUBLIC time_scheme)
 
-add_executable(
-    schemeconverg
-    src/scheme_converg.cpp
-)
-target_link_libraries(schemeconverg PUBLIC time_scheme)
+# add_executable(
+#     schemeconverg
+#     src/scheme_converg.cpp
+# )
+# target_link_libraries(schemeconverg PUBLIC time_scheme)

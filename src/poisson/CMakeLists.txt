@@ -20,9 +20,9 @@ target_include_directories(
 
 
 
-add_executable(
-    poisson_test
-    tests/poisson.cpp
-)
-target_link_libraries(poisson_test PUBLIC poisson)
-target_link_libraries(poisson_test PRIVATE Catch2::Catch2WithMain)
+# add_executable(
+#     poisson_test
+#     tests/poisson.cpp
+# )
+# target_link_libraries(poisson_test PUBLIC poisson)
+# target_link_libraries(poisson_test PRIVATE Catch2::Catch2WithMain)

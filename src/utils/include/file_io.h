@@ -2,14 +2,13 @@
 #define FILE_IO_
 
 #include "common.h"
-#include "poisson.h"
 #include "problem_conditions.h"
 
 namespace fs = std::filesystem;
 
 grid_conds load_grid_conds(string grid_file);
 time_integr_conds load_tic(string tic_file);
-approxs load_approx_conds(string appr_file, const grid & g);
+approx load_approx_conds(string appr_file);
 
 void write_matrix(const spmat & m, string s);
 void write_matrix(const mat & m, string s);
