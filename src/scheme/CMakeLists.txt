@@ -30,8 +30,8 @@ target_include_directories(
 # )
 # target_link_libraries(schemeapprox PUBLIC time_scheme)
 
-# add_executable(
-#     schemeconverg
-#     src/scheme_converg.cpp
-# )
-# target_link_libraries(schemeconverg PUBLIC time_scheme)
+add_executable(
+    schemeconverg
+    src/scheme_converg.cpp
+)
+target_link_libraries(schemeconverg PUBLIC time_scheme)

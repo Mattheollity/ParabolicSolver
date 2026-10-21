@@ -9,6 +9,7 @@
 #include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <string>
 #include <vector>
 
 double get_cheb_norm(const vect & v)
@@ -126,18 +127,20 @@ vector<double> get_eqlid_converg_at_time_step(const grid & g, const time_integr_
 
 vector<vector<double>> check_space_converg(string filename)
 {
-    auto check_data = get_check_data(filename);
-    int amount_of_dirs = check_data.first.size();
-    vector<string> & dir_names = check_data.first;
-    vector<int> & time_steps = check_data.second;
-
-    approxs_conds appc({approx, dirich_boundary_conds});
+    auto dir_names = get_check_data(filename);
+    int amount_of_dirs = dir_names.size();
 
     vector<vector<double>> eqlid(amount_of_dirs);
+
     for(int i=0;i<amount_of_dirs;i++)
     {
         time_integr_conds tic = load_tic(dir_names[i]+"/tic");
         grid g(load_grid_conds(dir_names[i]+"/grid"));
+        approx appc(load_approx_conds(dir_names[i]+"/approx"));
+        appc.approx_func = approx_func;
+        appc.dirichlet = dirich_boundary_conds;
+        appc.h = g.get_h();
+
         poisson_system p_system(g, appc);
         {
             int N = tic.N-tic.N%tic.write_each-tic.write_each;
@@ -161,25 +164,30 @@ vector<vector<double>> check_space_converg(string filename)
     return eqlid;
 }
 
-pair<vector<string>, vector<int>> get_check_data(string filename)
+vector<string> get_check_data(string filename)
 {
     std::ifstream file(filename);
+
+    string sbuf;
+
     int amount_of_directories;
+    vector<string> dir_names;
+
+    file>>sbuf;
+    if(sbuf!="check_converg_file") throw simple_error("excpected check_converg_file");
+
+    file>>sbuf;
+    if(sbuf!="amount_of_dirs") throw simple_error("excpected amount_of_dirs");
     file>>amount_of_directories;
+    dir_names.resize(amount_of_directories);
 
-    vector<string> dir_names(amount_of_directories);
-
+    file>>sbuf;
+    if(sbuf!="dirs") throw simple_error("excpected dirs");
     for(int i=0;i<amount_of_directories;i++)
     file>>dir_names[i];
 
-    int amount_of_times;
-    file>>amount_of_times;
-    vector<int> time_steps(amount_of_times);
-    for(int i=0;i<amount_of_times;i++)
-    file>>time_steps[i];
-
     file.close();
-    return {dir_names, time_steps};
+    return dir_names;
 }
 
 int main()
