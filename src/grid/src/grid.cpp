@@ -9,29 +9,28 @@ grid::grid(const grid_conds & gc) :
         gc.N
     }),
     h(dim),
-    subdomains(gc.subdomains.size()),
-    gridlog(std::stringstream())
+    subdomains(gc.subdomains.size())
 {
-    double t0 = omp_get_wtime();
-    cout<<"GRID CREATION"<<endl;
-    for(int i=0; i<dim; i++)
+    double t0, t1;
+
+    cout<<"---------------GRID CREATION--------------"<<endl;
+    t0 = omp_get_wtime();
+
+    for(int i=0;i<dim;i++)
     h[i] = (bbox.second[i] - bbox.first[i])/(N_bbox.second[i]-1);
 
-    int TOTAL = 1;
-    for(int i=0; i<dim; i++) TOTAL*=N_bbox.second[i];
-    vertexes = vector<vertex>(TOTAL);
+    int amount = 1;
+    for(int i=0;i<dim;i++) amount*=N_bbox.second[i];
+    vertexes = vector<vertex>(amount);
 
-    double t1 = omp_get_wtime();
     fill_domain();
 
-    double t2 = omp_get_wtime();
-    cout<<"grid was filled by "<<vertexes.size()<<" vertexes with time: "<<t2-t1<<endl;
-
-    t1=t2;
     for(int i=0; i<gc.subdomains.size(); i++)
     create_subdomain(i, gc.subdomains[i]);
 
-    setup_subdomains();
+    connect_neighboring_subdomains();
+    assert_all_vertexes_has_subdomain();
+
     t2=omp_get_wtime();
     cout<<subdomains.size()<<" subdomains were created with time: "<<t2-t1<<endl;
 
@@ -42,24 +41,26 @@ grid::grid(const grid_conds & gc) :
     cout<<"GRID WAS SUCCESSFULLY CREATED with time: "<<omp_get_wtime()-t0<<endl<<endl;
 }
 
+
 void grid::fill_domain()
 {
+    double t0, t1;
+
+    t0 = omp_get_wtime();
+    cout<<"Start fill_domain"<<endl;
+
     int i=0;
-    for
-    (
-        dim_iterator di(N_bbox, N_bbox.first);
-        !di.is_full();
-        ++di
-    )
+    for(dim_iterator di(N_bbox); !di.is_overfull(); ++di)
     {
         vertexes[i] = {i, di.voxel_coord};
-
-        vertex & v = vertexes[i];
-        to_inner_or_to_boundary(v);
-        v.neighbors = di.get_neighbors();
-
+        auto neighbors = di.find_neighbors_and_dims();
+        vertexes[i].neighbors_indexes=neighbors.first;
+        vertexes[i].neighbors_dims=neighbors.second;
         i++;
     }
+
+    t1 = omp_get_wtime();
+    cout<<"End fill_domain with time: "<<t1-t0<<endl;
 }
 
 grid::grid(string s)
@@ -198,14 +199,7 @@ void grid::write_vertexes(std::ofstream & file) const
     file<<v.to_string();
 }
 
-void grid::create_subdomain(int i, pair<point, point> bbox_)
-{
-    subdomains[i] = subdomain();
-    subdomains[i].i = i;
-    subdomains[i].N_bbox = truncate_subdomain_bbox(bbox_);
 
-    fill_subdomain(subdomains[i]);
-}
 
 pair<voxel_point, voxel_point> grid::truncate_subdomain_bbox(pair<point, point> & bbox_)
 {
@@ -465,12 +459,4 @@ void grid::assert_all_vertexes_has_subdomain() const
     #pragma omp parallel for firstprivate(vertexes, subdomains)
     for(int i=0; i<vertexes.size(); i++)
     if(vertexes[i].boundary==false && vertexes[i].containing_subdomain==-1) throw("Any vertex must has subdomain or be boundary vertex");
-}
-
-void grid::setup_subdomains()
-{
-    find_neighboring_subdomains();
-    for(int i=0;i<vertexes.size(); i++)
-    if(!vertexes[i].boundary)
-    to_inner_or_to_boundary(subdomains[vertexes[i].containing_subdomain], vertexes[i]);
 }

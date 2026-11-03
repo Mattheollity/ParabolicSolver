@@ -4,6 +4,7 @@
 #include <cmath>
 #include <vector>
 #include "eexpokit/expv.hpp"
+#include "problem_conditions.h"
 
 double trip_sin(const point p)
 {
@@ -63,7 +64,9 @@ double dirich_boundary_conds(point, double t) {return 0;}
 
 double real_solution(int dim, const point p, double t)
 {
-    return exp(-M_PI*M_PI*dim*t)*trip_sin(p);
+    double k = 10101;
+
+    return exp(-M_PI*M_PI*k*t)*trip_sin(p);
 }
 
 vect get_solution_at_time_step(const grid & g, const time_integr_conds & tic, int N)
@@ -81,53 +84,53 @@ vect get_solution_at_time_step(const grid & g, const time_integr_conds & tic, in
 
 
 
-vect get_time_deriv_at_time_step(const grid & g, const time_integr_conds & tic, int N)
-{
-    vect td = (-g.get_dim())*M_PI*M_PI*get_solution_at_time_step(g, tic, N);
+// vect get_time_deriv_at_time_step(const grid & g, const time_integr_conds & tic, int N)
+// {
+//     vect td = (-g.get_dim())*M_PI*M_PI*get_solution_at_time_step(g, tic, N);
 
-    return td;
-}
+//     return td;
+// }
 
-vect get_dummy_time_deriv_at_time_step(const grid & g, const time_integr_conds & tic, int N)
-{
-    vect a = get_solution_at_time_step(g, tic, N);
-    vect b = get_solution_at_time_step(g, tic, N+1);
-    vect td = (1.0/tic.T)*(b-a);
+// vect get_dummy_time_deriv_at_time_step(const grid & g, const time_integr_conds & tic, int N)
+// {
+//     vect a = get_solution_at_time_step(g, tic, N);
+//     vect b = get_solution_at_time_step(g, tic, N+1);
+//     vect td = (1.0/tic.T)*(b-a);
 
-    return td;
-}
+//     return td;
+// }
 
-vect get_laplace_at_time_step(const grid & g, const time_integr_conds & tic, const sparse_system & p_system, int N)
-{
-    auto points = g.get_inner_points();
-    vect yn = get_solution_at_time_step(g, tic, N);
-    vect ynn = yn;
-    ynn.setZero();
+// vect get_laplace_at_time_step(const grid & g, const time_integr_conds & tic, const sparse_system & p_system, int N)
+// {
+//     auto points = g.get_inner_points();
+//     vect yn = get_solution_at_time_step(g, tic, N);
+//     vect ynn = yn;
+//     ynn.setZero();
 
-    const mat P = p_system.permutation;
-    yn = P*yn;
+//     const mat P = p_system.permutation;
+//     yn = P*yn;
 
-    vector<int> csum = {0};
-    for(int i : p_system.sizes)
-    csum.push_back(csum.back()+i);
+//     vector<int> csum = {0};
+//     for(int i : p_system.sizes)
+//     csum.push_back(csum.back()+i);
 
-    for(int i=0; i<p_system.amount_of_parts; i++)
-    for(int j=0; j<p_system.amount_of_parts; j++)
-    ynn.block(csum[i], 0, csum[i+1]-csum[i], 1) += p_system.system[i][j]*yn.block(csum[j], 0, csum[j+1]-csum[j], 1);
+//     for(int i=0; i<p_system.amount_of_parts; i++)
+//     for(int j=0; j<p_system.amount_of_parts; j++)
+//     ynn.block(csum[i], 0, csum[i+1]-csum[i], 1) += p_system.system[i][j]*yn.block(csum[j], 0, csum[j+1]-csum[j], 1);
 
-    return P.transpose()*ynn;
-}
+//     return P.transpose()*ynn;
+// }
 
-double get_laplace_eqlid_at_time_step(const grid & g, const time_integr_conds & tic, const sparse_system & p_system, int N)
-{
-    vect lpv = get_laplace_at_time_step(g, tic, p_system, N);
-    double norm = 0;
+// double get_laplace_eqlid_at_time_step(const grid & g, const time_integr_conds & tic, const sparse_system & p_system, int N)
+// {
+//     vect lpv = get_laplace_at_time_step(g, tic, p_system, N);
+//     double norm = 0;
     
-    for(int i=0;i<lpv.rows(); i++)
-    norm+=lpv.coeff(i)*lpv.coeff(i);
+//     for(int i=0;i<lpv.rows(); i++)
+//     norm+=lpv.coeff(i)*lpv.coeff(i);
 
-    norm/=lpv.rows();
+//     norm/=lpv.rows();
 
-    return sqrt(norm);
+//     return sqrt(norm);
 
-}
+// }

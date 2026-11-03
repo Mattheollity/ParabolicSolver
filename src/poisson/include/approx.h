@@ -3,6 +3,7 @@
 
 #include "common.h"
 #include "poisson.h"
+#include "problem_conditions.h"
 
 double trip_sin(const point p);
 double real_solution(int dim, const point p, double t);

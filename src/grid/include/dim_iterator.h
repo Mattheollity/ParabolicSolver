@@ -6,28 +6,18 @@
 
 struct dim_iterator
 {
-    unsigned dim;
-    pair<voxel_point, voxel_point> bbox;
+    int dim;
+    pair<voxel_point, voxel_point> vbbox;
     voxel_point voxel_coord;
-
     voxel_point conv_sizes;
-
-    dim_iterator(const pair<voxel_point, voxel_point> & bbox, const voxel_point & initial_position);
-
-    dim_iterator & operator++();
-    dim_iterator & operator--();
     
-    bool operator<(const voxel_point & v);
-    bool operator!=(const voxel_point & v);
 
-    bool is_full();
-    bool is_empty();
 
-    int conv();
-    int conv(const pair<voxel_point, voxel_point> & bbox);
+    dim_iterator(const pair<voxel_point, voxel_point> & vbbox);
 
-    vector<pair<int, int>> get_neighbors();
-    vector<pair<int, int>> get_neighbors(const pair<voxel_point, voxel_point> & bbox);
+    pair<vector<int>, vector<int>> find_neighbors_and_dims();
+    dim_iterator & operator++();
+    bool is_overfull();
 };
 
 #endif

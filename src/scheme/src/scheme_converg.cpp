@@ -85,25 +85,38 @@ vect get_approx_solution_at_time_step(const grid & g, const time_integr_conds & 
     //     timepow*=(-time);
     //     sol+=(1.0/i)*timepow*multiply_spsys_and_vect(spsys, sol, sol, tic);
     // }
-    vect sol = eexpokit::expv(-time, spsys.system[0][0], another);
+
+    spmat A = spsys.system[0][0];
+    //A = (-1)*A;
+
+    vect sol = eexpokit::expv(-time, A, another);
 
     return sol;
 }
 
 vector<double> get_eqlid_converg_at_time_step(const grid & g, const time_integr_conds & tic, const sparse_system & p_system, int N, string dir_name)
 {
-    vect origin_sol = get_solution_at_time_step(g, tic, N);
+    vect origin_sol = get_solution_at_time_step(g, tic, 0);
+    vect origin_sol_2 = get_approx_solution_at_time_step(g, tic, 2, p_system);
+
+    double k = M_PI*M_PI*10101;
+
+    vect osol = p_system.system[0][0]*origin_sol-k*origin_sol;
+
     //vect origin_sol_next = get_solution_at_time_step(g, tic, N+1);
 
-    vect deriv = get_time_deriv_at_time_step(g, tic, N);
+    //vect deriv = get_time_deriv_at_time_step(g, tic, N);
 
-    vect compt_sol = load_vect(dir_name+"/"+to_string(N), origin_sol.rows());
-    vect compt_sol_next = load_vect(dir_name+"/"+to_string(N+1), origin_sol.rows());
-    vect cderiv = multiply_spsys_and_vect(p_system, compt_sol, compt_sol_next, tic);
+    vect compt_sol = load_vect(dir_name+"/"+to_string(2), origin_sol.rows());
+    //vect compt_sol_next = load_vect(dir_name+"/"+to_string(N+1), origin_sol.rows());
+    //vect cderiv = multiply_spsys_and_vect(p_system, compt_sol, compt_sol_next, tic);
 
-    vect sol_diffr = deriv+cderiv;
+    cout<<"solreal norm: "<<get_eqlid_norm(origin_sol_2)<<endl;
+    cout<<"solcomp norm: "<<get_eqlid_norm(compt_sol)<<endl;
+
+    vect sol_diffr = origin_sol_2-compt_sol;
     double sol_diffr_norm = get_eqlid_norm(sol_diffr);
-    double sol_norm = get_eqlid_norm(deriv);
+    double sol_norm = get_eqlid_norm(origin_sol_2);
 
 
     //double right_norm = get_eqlid_L_converg(g, tic, p_system, N, dir_name);
@@ -148,12 +161,18 @@ vector<vector<double>> check_space_converg(string filename)
             cout<<"Dir: "<<dir_names[i]<<endl;
             cout<<"time step: "<<N<<endl;
 
-            vector<double> error = get_eqlid_converg_at_time_step(g, tic, p_system.get_system(), 0, dir_names[i]);
-            for(int q=0;q<error.size(); q++)
-            error[q]=log(error[q]);
+            vector<double> error = get_eqlid_converg_at_time_step(g, tic, p_system.get_system(), N, dir_names[i]);
+            //for(int q=0;q<error.size(); q++)
+            //error[q]=log(error[q]);
 
-            cout<<g.get_h()[0]<<endl;
-            eqlid[i].push_back(log(g.get_h()[0]));
+            double h_ = 0;
+            auto & hg_ = g.get_h();
+            for(auto foo : hg_)
+            h_+=foo*foo;
+            h_=sqrt(h_);
+
+            cout<<h_<<endl;
+            eqlid[i].push_back(log(h_));
             cout<<tic.T<<endl;
             eqlid[i].push_back(log(tic.T));
             eqlid[i].insert(eqlid[i].end(), error.begin(), error.end());

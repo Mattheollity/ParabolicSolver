@@ -1,51 +1,46 @@
 #include "vertex.h"
 
-vertex::vertex(int i_, voxel_point vp) :
-    i(i_),
+vertex::vertex(int index_, voxel_point vp) :
+    index(index_),
     dim(vp.size()),
     voxel_coord(vp),
-    containing_subdomain(-1),
-    boundary(false) {};
+    subdomain(-1)
+{};
 
-void vertex::from_file(std::ifstream & file)
+vertex & vertex::string_import(string str)
 {
-    int n_size;
-    file>>dim;
-    file>>i;
-    file>>containing_subdomain;
-    file>>n_size;
-    neighbors = vector<pair<int, int>> (n_size);
-    voxel_coord = voxel_point(dim);
-    for(int i=0;i<dim;i++) file>>voxel_coord[i];
-    for(int i=0;i<n_size;i++) file>>neighbors[i].first>>neighbors[i].second;
+    int neigbors_size;
+
+    std::istringstream ss(str);
+
+    ss>>index;
+    ss>>subdomain;
+
+    for(int i=0;i<dim;i++) ss>>voxel_coord[i];
+
+    ss>>neigbors_size;
+    neighbors_indexes.resize(neigbors_size);
+    for(int i=0;i<neigbors_size;i++) ss>>neighbors_indexes[i];
+    neighbors_dims.resize(neigbors_size);
+    for(int i=0;i<neigbors_size;i++) ss>>neighbors_dims[i];
+
+    return *this;
 }
 
-bool vertex::at_top_boundary(voxel_point bbox_top_right) const
+string vertex::string_export() const
 {
-    for(unsigned d=0;d<dim;d++) if(voxel_coord[d]==bbox_top_right[d]-1) return true;
-    return false;
-}
+    int neigbors_size = neighbors_indexes.size();
 
-bool vertex::at_bottom_boundary(voxel_point bbox_bottom_left) const {
-    for(unsigned d=0;d<dim;d++) if(voxel_coord[d]==bbox_bottom_left[d]) return true;
-    return false;
-}
+    std::ostringstream ss;
 
-string vertex::to_string()
-{
-    std::stringstream oss;
-    oss<<dim<<" "<<i<<" "<<containing_subdomain<<" "<<neighbors.size()<<"\n";
-    for(auto vc : voxel_coord) oss<<vc<<"\n";
-    for(auto n : neighbors) oss<<n.first<<" "<<n.second<<"\n";
-    return oss.str();
-}
+    ss<<index<<" ";
+    ss<<subdomain<<" ";
 
-bool vertex::at_critical_point(pair<voxel_point, voxel_point> N_bbox) const
-{
-    int dim_counter = 0;
-    for(int d=0;d<dim;d++)
-    if(voxel_coord[d]==N_bbox.second[d]-1 || voxel_coord[d]==N_bbox.first[d]) dim_counter++;
+    for(int i=0;i<dim;i++) ss<<voxel_coord[i]<<" ";
+    
+    ss<<neigbors_size<<" ";
+    for(int i=0;i<neigbors_size;i++) ss<<neighbors_indexes[i]<<" ";
+    for(int i=0;i<neigbors_size;i++) ss<<neighbors_dims[i]<<" ";
 
-    if(dim_counter==dim) return true;
-    else return false;
+    return ss.str();
 }
