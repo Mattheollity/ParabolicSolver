@@ -1,65 +1,35 @@
 #include "dim_iterator.h"
+#include <vector>
 
-dim_iterator::dim_iterator(const pair<voxel_point, voxel_point> & bbox_, const voxel_point & initial_position_) : 
-    bbox(bbox_),
+dim_iterator::dim_iterator(const pair<voxel_point, voxel_point> & bbox_) : 
+    vbbox(bbox_),
     dim(bbox_.first.size()),
-    voxel_coord(initial_position_),
+    voxel_coord(vbbox.first),
     conv_sizes(dim, 1)
 {
     for(unsigned d=1;d<dim;d++)
-        conv_sizes[d]=conv_sizes[d-1]*(bbox.second[d-1]-bbox.first[d-1]);
+        conv_sizes[d]=conv_sizes[d-1]*(vbbox.second[d-1]-vbbox.first[d-1]);
 }
 
 dim_iterator & dim_iterator::operator++() {
     voxel_coord[0]++;
     for(unsigned d=0; d<dim-1;d++)
     {
-        if(voxel_coord[d]==bbox.second[d])
+        if(voxel_coord[d]==vbbox.second[d])
         {
-            voxel_coord[d]=bbox.first[d];
+            voxel_coord[d]=vbbox.first[d];
             voxel_coord[d+1]++;
         }
     }
     return *this;
 }
 
-dim_iterator & dim_iterator::operator--() {
-    voxel_coord[0]--;
-    for(unsigned d=0; d<dim-1;d++)
-    {
-        if(voxel_coord[d]==-1)
-        {
-            voxel_coord[d]=bbox.second[d]-1;
-            voxel_coord[d+1]--;
-        }
-    }
-    return *this;
-}
-
-
-bool dim_iterator::operator<(const voxel_point & v)
+bool dim_iterator::is_overfull()
 {
-    for(unsigned d=0;d<dim;d++) if(voxel_coord[d]>=v[d]) return false;
-    return true;
+    return voxel_coord[dim-1]>=vbbox.second[dim-1];
 }
 
-bool dim_iterator::operator!=(const voxel_point & v)
-{
-    for(unsigned d=0;d<dim;d++) if(voxel_coord[d]!=v[d]) return true;
-    return false;
-}
-
-bool dim_iterator::is_full()
-{
-    return voxel_coord[dim-1]>=bbox.second[dim-1];
-}
-
-bool dim_iterator::is_empty()
-{
-    return voxel_coord[dim-1]<bbox.first[dim-1];
-}
-
-int dim_iterator::conv()
+int dim_iterator::local_index() const
 {
     unsigned s=0;
 
@@ -69,53 +39,26 @@ int dim_iterator::conv()
     return s;
 }
 
-int dim_iterator::conv(const pair<voxel_point, voxel_point> & bbox_)
+pair<vector<int>, vector<int>> dim_iterator::find_neighbors_and_dims() const
 {
-    unsigned s=0;
-    vector<unsigned> local_conv_sizes (dim,1);
+    vector<int> neighbors;
+    vector<int> dims;
 
-    for(unsigned d=1;d<dim;d++)
-    local_conv_sizes[d]=local_conv_sizes[d-1]*(bbox_.second[d-1]-bbox_.first[d-1]);
+    int s = local_index();
 
     for(unsigned d=0;d<dim;d++)
-    s+=local_conv_sizes[d]*(voxel_coord[d]-bbox_.first[d]);
-
-    return s;
-}
-
-vector<pair<int, int>> dim_iterator::get_neighbors()
-{
-    vector<pair<int, int>> neighbors;
-
-    int s = conv();
-
-    for(unsigned d=0;d<dim;d++)
+    if(voxel_coord[d]+1<vbbox.second[d])
     {
-        if(voxel_coord[d]+1<bbox.second[d]) neighbors.push_back({s+conv_sizes[d], d});
-        if(voxel_coord[d]-1>=bbox.first[d]) neighbors.push_back({s-conv_sizes[d], d});
+        neighbors.push_back(s+conv_sizes[d]);
+        dims.push_back(d);
     }
 
-    return neighbors;
-}
-
-vector<pair<int, int>> dim_iterator::get_neighbors(const pair<voxel_point, voxel_point> & bbox_)
-{
-    vector<pair<int, int>> neighbors;
-
-    int s=0;
-    vector<unsigned> local_conv_sizes (dim,1);
-
-    for(unsigned d=1;d<dim;d++)
-    local_conv_sizes[d]=conv_sizes[d-1]*(bbox_.second[d]-bbox_.first[d]);
-
     for(unsigned d=0;d<dim;d++)
-    s+=local_conv_sizes[d]*(voxel_coord[d]-bbox_.first[d]);
-
-    for(unsigned d=0;d<dim;d++)
+    if(voxel_coord[d]-1>=vbbox.first[d])
     {
-        if(voxel_coord[d]+1<bbox_.second[d]) neighbors.push_back({s+local_conv_sizes[d], d});
-        if(voxel_coord[d]-1>=bbox_.first[d]) neighbors.push_back({s-local_conv_sizes[d], d});
+        neighbors.push_back(s-conv_sizes[d]);
+        dims.push_back(-d);
     }
 
-    return neighbors;
+    return {neighbors,dims};
 }

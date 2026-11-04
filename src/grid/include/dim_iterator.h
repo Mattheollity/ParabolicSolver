@@ -15,7 +15,9 @@ struct dim_iterator
 
     dim_iterator(const pair<voxel_point, voxel_point> & vbbox);
 
-    pair<vector<int>, vector<int>> find_neighbors_and_dims();
+    pair<vector<int>, vector<int>> find_neighbors_and_dims() const;
+    int local_index() const;
+
     dim_iterator & operator++();
     bool is_overfull();
 };

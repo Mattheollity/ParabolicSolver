@@ -1,26 +1,23 @@
 #include "grid.h"
-#include <omp.h>
+#include "problem_conditions.h"
 
 grid::grid(const grid_conds & gc) :
     bbox(gc.bbox),
     dim(gc.N.size()),
-    N_bbox({
-        vector<int>(dim,0),
-        gc.N
-    }),
+    N_bbox(gc.N),
     h(dim),
     subdomains(gc.subdomains.size())
 {
-    double t0, t1;
+    double t0;
 
     cout<<"---------------GRID CREATION--------------"<<endl;
     t0 = omp_get_wtime();
 
     for(int i=0;i<dim;i++)
-    h[i] = (bbox.second[i] - bbox.first[i])/(N_bbox.second[i]-1);
+    h[i] = (bbox.second[i] - bbox.first[i])/(N_bbox[i]-1);
 
     int amount = 1;
-    for(int i=0;i<dim;i++) amount*=N_bbox.second[i];
+    for(int i=0;i<dim;i++) amount*=N_bbox[i];
     vertexes = vector<vertex>(amount);
 
     fill_domain();
@@ -31,12 +28,7 @@ grid::grid(const grid_conds & gc) :
     connect_neighboring_subdomains();
     assert_all_vertexes_has_subdomain();
 
-    t2=omp_get_wtime();
-    cout<<subdomains.size()<<" subdomains were created with time: "<<t2-t1<<endl;
-
-    assert_all_vertexes_has_subdomain();
-
-    permut = build_permutation_along_subd();
+    permutation = build_permutation_vector();
 
     cout<<"GRID WAS SUCCESSFULLY CREATED with time: "<<omp_get_wtime()-t0<<endl<<endl;
 }
@@ -50,17 +42,50 @@ void grid::fill_domain()
     cout<<"Start fill_domain"<<endl;
 
     int i=0;
-    for(dim_iterator di(N_bbox); !di.is_overfull(); ++di)
+    for(dim_iterator di({voxel_point(dim,0), N_bbox}); !di.is_overfull(); ++di)
     {
         vertexes[i] = {i, di.voxel_coord};
-        auto neighbors = di.find_neighbors_and_dims();
-        vertexes[i].neighbors_indexes=neighbors.first;
-        vertexes[i].neighbors_dims=neighbors.second;
+        find_neighbors_and_axis(vertexes[i]);
         i++;
     }
 
     t1 = omp_get_wtime();
     cout<<"End fill_domain with time: "<<t1-t0<<endl;
+}
+
+void grid::find_neighbors_and_axis(vertex & v)
+{
+    auto & vc = v.voxel_coord;
+    vector<int> neighbors;
+    vector<int> neighbor_axis;
+
+    for(int d=0;d<dim;d++)
+    if(vc[d]+1<N_bbox[d])
+    {
+        auto foo = vc;
+        foo[d]+=1;
+        neighbors.push_back(global_index(foo));
+        neighbor_axis.push_back(d);
+    }
+    else if (v.voxel_coord[d]-1>=0)
+    {
+        auto foo = vc;
+        foo[d]-=1;
+        neighbors.push_back(global_index(foo));
+        neighbor_axis.push_back(-d);
+    }
+
+    v.neighbors_indexes=neighbors;
+    v.neighbors_dims=neighbor_axis;
+}
+
+int grid::global_index(const voxel_point & voxel_coord)
+{
+    int index=0;
+    for(int d=0;d<dim;d++)
+    index+=csum[d]*voxel_coord[d];
+
+    return index;
 }
 
 grid::grid(string s)

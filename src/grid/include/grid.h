@@ -2,11 +2,10 @@
 #define GRID_
 
 #include "common.h"
+
 #include "vertex.h"
 #include "dim_iterator.h"
 #include "problem_conditions.h"
-#include <ostream>
-#include <sstream>
 
 struct vertex;
 struct subdomain;
@@ -17,7 +16,8 @@ class grid
 {
     int dim;
     pair<point, point> bbox;
-    pair<voxel_point, voxel_point> N_bbox;
+    voxel_point N_bbox;
+    vector<int> csum;
     vector<double> h;
     
     vector<vertex> vertexes;
@@ -28,6 +28,8 @@ class grid
 
 
     void fill_domain();
+    void find_neighbors_and_axis(vertex &);
+    int global_index(const voxel_point &);
 
     subdomain & create_subdomain(int i, pair<point, point> bbox_);
     void fill_subdomain(subdomain &);
@@ -50,22 +52,23 @@ class grid
     public:
 
     grid(const grid_conds &);
+    grid(const string GRID_FILENAME);
 
     void fill_interaction(interaction &, const vector<int> & input, const vector<int> & output) const;
     vector<interaction> get_interaction_between(int i, int j) const;
     vector<interaction> get_self_interaction(int i) const;
     interaction get_inner_boundary_transpose_interaction() const;
 
-    void import_grid(string filename) const;
-    void export_grid(string filename);
+
+
+    void export_grid(string filename) const;
 
     int get_dim() const {return dim;}
     const pair<point, point> & get_bbox() const {return bbox;}
-    const pair<voxel_point, voxel_point> & get_vbbox() const {return N_bbox;}
+    const voxel_point & get_vbbox() const {return N_bbox;}
     const vector<double> & get_h() const {return h;}
     const vector<point> get_boundary_points() const;
     const vector<point> get_inner_points() const;
-
     const vector<int> get_permutation_vector() const {return permutation;}
     
 };
