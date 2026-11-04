@@ -25,8 +25,10 @@ class grid
 
     vector<int> permutation;
 
+    string GRID_DIR;
 
 
+    void create_grid(const grid_conds &);
     void fill_domain();
     void find_neighbors_and_axis(vertex &);
     int global_index(const voxel_point &);
@@ -47,6 +49,14 @@ class grid
     point to_real_coord(voxel_point) const;
     voxel_point to_voxel_coord(point) const;
 
+    bool import_grid();
+    bool import_domain();
+    bool import_subdomains();
+
+    void export_grid() const;
+    void export_domain() const;
+    void export_subdomains() const;
+
 
 
     public:
@@ -60,8 +70,6 @@ class grid
     interaction get_inner_boundary_transpose_interaction() const;
 
 
-
-    void export_grid(string filename) const;
 
     int get_dim() const {return dim;}
     const pair<point, point> & get_bbox() const {return bbox;}

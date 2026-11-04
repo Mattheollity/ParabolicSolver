@@ -1,5 +1,9 @@
 #include "grid.h"
+#include "common.h"
 #include "problem_conditions.h"
+#include <fstream>
+#include <ostream>
+#include <string>
 
 grid::grid(const grid_conds & gc) :
     bbox(gc.bbox),
@@ -7,6 +11,12 @@ grid::grid(const grid_conds & gc) :
     N_bbox(gc.N),
     h(dim),
     subdomains(gc.subdomains.size())
+{
+    bool succed_import = import_grid();
+    if(!succed_import) create_grid(gc);
+}
+
+void grid::create_grid(const grid_conds & gc)
 {
     double t0;
 
@@ -32,7 +42,6 @@ grid::grid(const grid_conds & gc) :
 
     cout<<"GRID WAS SUCCESSFULLY CREATED with time: "<<omp_get_wtime()-t0<<endl<<endl;
 }
-
 
 void grid::fill_domain()
 {
@@ -88,23 +97,6 @@ int grid::global_index(const voxel_point & voxel_coord)
     return index;
 }
 
-grid::grid(string s)
-{
-    load_from_file(s);
-}
-
-void grid::load_from_file(string s)
-{
-    std::ifstream file(s);
-    file>>dim;
-
-    load_subdomains(file);
-    load_bboxes(file);
-    load_vertexes(file);
-
-    find_b_i();
-}
-
 void grid::load_subdomains(std::ifstream & file)
 {
     int amount_subd;
@@ -135,21 +127,6 @@ void grid::load_subdomain(std::ifstream & file, int i)
     }
 }
 
-void grid::load_bboxes(std::ifstream & file)
-{
-    bbox.first = vector<double> (dim);
-    bbox.second = vector<double> (dim);
-    h = vector<double> (dim);
-
-    N_bbox.first = vector<int> (dim);
-    N_bbox.second = vector<int> (dim);
-    for(int i=0;i<dim;i++) file>>bbox.first[i];
-    for(int i=0;i<dim;i++) file>>bbox.second[i];
-    for(int i=0;i<dim;i++) file>>N_bbox.first[i];
-    for(int i=0;i<dim;i++) file>>N_bbox.second[i];
-    for(int i=0;i<dim;i++) file>>h[i];
-}
-
 void grid::load_vertexes(std::ifstream & file)
 {
     int vtx_size;
@@ -171,23 +148,146 @@ void grid::find_b_i(int i)
         to_inner_or_to_boundary(subdomains[v.containing_subdomain], v);
 }
 
-void grid::write_to_file(string s) const
+bool grid::import_grid()
 {
-    std::ofstream file(s);
-    file<<dim<<endl;
+    bool res1 = import_domain();
+    bool res2 = import_subdomains();
 
-    write_subdomains(file);
-    write_bboxes(file);
-    write_vertexes(file);
-
-    file.close();
+    return res1 && res2;
 }
 
-void grid::write_subdomains(std::ofstream & file) const
+void grid::export_grid() const
 {
-    file<<subdomains.size()<<endl;
+    export_domain();
+    export_subdomains();
+}
+
+bool grid::import_domain()
+{
+    string buf;
+    int ibuf;
+
+    std::ifstream file("vertexes");
+
+    file>>buf;
+    if(buf=="amount")
+    {
+        file>>ibuf;
+        vertexes = vector<vertex> (ibuf);
+        permutation = vector<int> (ibuf);
+    }
+    else throw simple_error("Expected amount at vertex file");
+
+    for(int i=0;i<vertexes.size();i++)
+    {
+        file>>buf;
+        vertexes[i].string_import(buf);
+    }   
+    file.close();
+
+    std::ifstream file2("permutation");
+
+    for(int i=0;i<permutation.size();i++)
+    {
+        file2>>ibuf;
+        permutation[i]=ibuf;
+    }
+
+    file2.close();
+    return true;
+}
+
+bool grid::import_subdomains()
+{
     for(int i=0; i<subdomains.size(); i++)
-    write_subdomain(file, i);
+    {
+        int ibuf;
+        double dbuf;
+        string buf;
+
+        subdomain & s = subdomains[i];
+        std::ifstream file(to_string(i));
+
+        file>>buf;
+        if(buf!="vbbox") throw simple_error("Expected vbbox at "+to_string(i)+" subdomain file");
+
+        s.N_bbox = {voxel_point(dim), voxel_point(dim)};
+        for(int d=0;d<dim;d++)
+        {
+            file>>ibuf;
+            s.N_bbox.first[d]=ibuf;
+        }
+        for(int d=0;d<dim;d++)
+        {
+            file>>ibuf;
+            s.N_bbox.second[d]=ibuf;
+        }
+
+        file>>buf;
+        if(buf!="neighboring_subdomains") throw simple_error("Expected neighboring_subdomains at "+to_string(i)+" subdomain file");
+        
+        file>>buf;
+        if(buf!="amount") throw simple_error("Expected neighboring_subdomains amount at "+to_string(i)+" subdomain file");
+        int foo;
+        file>>foo;
+        for(int j=0;j<foo;j++)
+        {
+            file>>ibuf;
+            s.neighboring_subdomains.insert(ibuf);
+        }
+
+
+        file<<endl;
+
+        file<<"inner_indexes"<<endl;
+        file<<"amount "<<s.inner.size();
+        for(auto i : s.inner) file<<i<<endl;
+        file<<"boundary_indexes"<<endl;
+        file<<"amount "<<s.boundary.size();
+        for(auto i : s.boundary) file<<i<<endl;
+
+        file.close();
+    }
+}
+
+void grid::export_domain() const
+{
+    std::ofstream file("vertexes");
+    file<<"amount "<<vertexes.size();
+    for(vertex v : vertexes) file<<v.string_export()<<endl;
+    file.close();
+
+    std::ofstream file2("permutation");
+    for(int i : permutation) file2<<i<<" ";
+    file2.close();
+}
+
+void grid::export_subdomains() const
+{
+    for(subdomain s : subdomains)
+    {
+        std::ofstream file(to_string(s.index));
+
+        file<<"vbbox"<<endl;
+        for(auto i : s.N_bbox.first) file<<i<<" ";
+        file<<endl;
+        for(auto i : s.N_bbox.second) file<<i<<" ";
+        file<<endl;
+
+        file<<"neighboring_subdomains"<<endl;
+        file<<"amount "<<s.neighboring_subdomains.size()<<endl;
+        for(int i : s.neighboring_subdomains) file<<i<<" ";
+        file<<endl;
+
+        file<<"inner_indexes"<<endl;
+        file<<"amount "<<s.inner.size();
+        for(auto i : s.inner) file<<i<<endl;
+        file<<"boundary_indexes"<<endl;
+        file<<"amount "<<s.boundary.size();
+        for(auto i : s.boundary) file<<i<<endl;
+
+        file.close();
+    }
 }
 
 void grid::write_subdomain(std::ofstream & file, int i) const
