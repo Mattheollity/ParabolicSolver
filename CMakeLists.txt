@@ -16,6 +16,7 @@ add_subdirectory(src/grid)
 add_subdirectory(src/poisson)
 add_subdirectory(src/scheme)
 add_subdirectory(src/utils)
+add_subdirectory(src/paraview_conv)
 
 add_executable(compt
     src/main.cpp
@@ -28,3 +29,4 @@ target_link_libraries(
     time_scheme
     utils
 )
+

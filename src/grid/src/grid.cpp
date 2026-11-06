@@ -97,69 +97,12 @@ int grid::global_index(const voxel_point & voxel_coord)
     return index;
 }
 
-void grid::load_subdomains(std::ifstream & file)
-{
-    int amount_subd;
-    file>>amount_subd;
-    subdomains = vector<subdomain> (amount_subd);
-    for(int i=0; i<amount_subd; i++) load_subdomain(file, i);
-}
-
-void grid::load_subdomain(std::ifstream & file, int i)
-{
-    file>>subdomains[i].i;
-    subdomain & s = subdomains[i];
-
-    s.N_bbox = {vector<int> (dim), vector<int> (dim)};
-    for(int d=0;d<dim;d++)
-        file>>s.N_bbox.first[d];
-    for(int d=0;d<dim;d++)
-        file>>s.N_bbox.second[d];
-
-    int neigh_size;
-    file>>neigh_size;
-    s.neighboring_subdomains = set<int> ();
-    for(int j=0;j<neigh_size;j++) 
-    {
-        unsigned k;
-        file>>k;
-        s.neighboring_subdomains.insert(k);
-    }
-}
-
-void grid::load_vertexes(std::ifstream & file)
-{
-    int vtx_size;
-    file>>vtx_size;
-    vertexes = vector<vertex> (vtx_size);
-    for(int i=0;i<vtx_size;i++) vertexes[i].from_file(file);
-}
-
-void grid::find_b_i()
-{
-    for(int i=0;i<vertexes.size(); i++) find_b_i(i);
-}
-
-void grid::find_b_i(int i)
-{
-    vertex & v = vertexes[i];
-    to_inner_or_to_boundary(v);
-    if(v.containing_subdomain!=-1)
-        to_inner_or_to_boundary(subdomains[v.containing_subdomain], v);
-}
-
 bool grid::import_grid()
 {
     bool res1 = import_domain();
     bool res2 = import_subdomains();
 
     return res1 && res2;
-}
-
-void grid::export_grid() const
-{
-    export_domain();
-    export_subdomains();
 }
 
 bool grid::import_domain()
@@ -202,6 +145,7 @@ bool grid::import_subdomains()
     for(int i=0; i<subdomains.size(); i++)
     {
         int ibuf;
+        int ibuf2;
         double dbuf;
         string buf;
 
@@ -236,18 +180,32 @@ bool grid::import_subdomains()
             s.neighboring_subdomains.insert(ibuf);
         }
 
+        file>>buf;
+        if(buf!="inner_indexes") throw simple_error("Expected inner_indexes at "+to_string(i)+" subdomain file");
+        file>>buf;
+        if(buf!="amount") throw simple_error("Expected inner_indexes amount at "+to_string(i)+" subdomain file");
+        file>>ibuf;
+        s.inner = vector<int> (ibuf);
+        for(int j=0;j<ibuf;j++) file>>s.inner[j];
 
-        file<<endl;
-
-        file<<"inner_indexes"<<endl;
-        file<<"amount "<<s.inner.size();
-        for(auto i : s.inner) file<<i<<endl;
-        file<<"boundary_indexes"<<endl;
-        file<<"amount "<<s.boundary.size();
-        for(auto i : s.boundary) file<<i<<endl;
+        file>>buf;
+        if(buf!="boundary_indexes") throw simple_error("Expected boundary_indexes at "+to_string(i)+" subdomain file");
+        file>>buf;
+        if(buf!="amount") throw simple_error("Expected boundary_indexes amount at "+to_string(i)+" subdomain file");
+        file>>ibuf;
+        s.boundary = vector<int> (ibuf);
+        for(int j=0;j<ibuf;j++) file>>s.boundary[j];
 
         file.close();
     }
+
+    return true;
+}
+
+void grid::export_grid() const
+{
+    export_domain();
+    export_subdomains();
 }
 
 void grid::export_domain() const
