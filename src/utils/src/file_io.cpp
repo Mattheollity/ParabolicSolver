@@ -153,7 +153,24 @@ approx load_approx_conds(string appr_file)
     return appr;
 }
 
+bool file_equality(string FILE1, string FILE2) {
+    if (!fs::exists(FILE1)) {
+        std::cerr << "Не найден файл: " << FILE1 << '\n';
+        return false;
+    }
+    if (!fs::exists(FILE2)) {
+        std::cerr << "Не найден файл: " << FILE2 << '\n';
+        return false;
+    }
 
+    std::ifstream fa(FILE1, std::ios::binary);
+    std::ifstream fb(FILE2, std::ios::binary);
+    if (!fa || !fb) return false;
+
+    return std::equal(std::istreambuf_iterator<char>(fa),
+                      std::istreambuf_iterator<char>(),
+                      std::istreambuf_iterator<char>(fb));
+}
 
 void write_matrix(const spmat & m, string s)
 {

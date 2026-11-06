@@ -10,6 +10,8 @@ grid_conds load_grid_conds(string grid_file);
 time_integr_conds load_tic(string tic_file);
 approx load_approx_conds(string appr_file);
 
+bool file_equality(string FILE1, string FILE2);
+
 void write_matrix(const spmat & m, string s);
 void write_matrix(const mat & m, string s);
 void write_matrix_struct(const spmat & m, string s);

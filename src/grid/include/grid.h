@@ -6,6 +6,7 @@
 #include "vertex.h"
 #include "dim_iterator.h"
 #include "problem_conditions.h"
+#include "file_io.h"
 
 struct vertex;
 struct subdomain;

@@ -1,6 +1,8 @@
 #include "grid.h"
 #include "common.h"
+#include "file_io.h"
 #include "problem_conditions.h"
+#include <filesystem>
 #include <fstream>
 #include <ostream>
 #include <string>
@@ -99,10 +101,16 @@ int grid::global_index(const voxel_point & voxel_coord)
 
 bool grid::import_grid()
 {
-    bool res1 = import_domain();
-    bool res2 = import_subdomains();
+    if(fs::exists(GRID_DIR+"/exp_grid_conds"))
+    if(file_equality(GRID_DIR+"/grid_conds", GRID_DIR+"/exp_grid_conds"))
+    {
+        bool res1 = import_domain();
+        bool res2 = import_subdomains();
 
-    return res1 && res2;
+        return res1 && res2;
+    }
+    
+    return false;
 }
 
 bool grid::import_domain()
@@ -110,7 +118,7 @@ bool grid::import_domain()
     string buf;
     int ibuf;
 
-    std::ifstream file("vertexes");
+    std::ifstream file(GRID_DIR+"/vertexes");
 
     file>>buf;
     if(buf=="amount")
@@ -128,7 +136,7 @@ bool grid::import_domain()
     }   
     file.close();
 
-    std::ifstream file2("permutation");
+    std::ifstream file2(GRID_DIR+"/permutation");
 
     for(int i=0;i<permutation.size();i++)
     {
@@ -150,7 +158,7 @@ bool grid::import_subdomains()
         string buf;
 
         subdomain & s = subdomains[i];
-        std::ifstream file(to_string(i));
+        std::ifstream file(GRID_DIR+"/"+to_string(i));
 
         file>>buf;
         if(buf!="vbbox") throw simple_error("Expected vbbox at "+to_string(i)+" subdomain file");
@@ -204,18 +212,19 @@ bool grid::import_subdomains()
 
 void grid::export_grid() const
 {
+    fs::copy_file(GRID_DIR+"/grid_conds", GRID_DIR+"/exp_grid_conds", fs::copy_options::overwrite_existing);
     export_domain();
     export_subdomains();
 }
 
 void grid::export_domain() const
 {
-    std::ofstream file("vertexes");
+    std::ofstream file(GRID_DIR+"/vertexes");
     file<<"amount "<<vertexes.size();
     for(vertex v : vertexes) file<<v.string_export()<<endl;
     file.close();
 
-    std::ofstream file2("permutation");
+    std::ofstream file2(GRID_DIR+"/permutation");
     for(int i : permutation) file2<<i<<" ";
     file2.close();
 }
@@ -224,7 +233,7 @@ void grid::export_subdomains() const
 {
     for(subdomain s : subdomains)
     {
-        std::ofstream file(to_string(s.index));
+        std::ofstream file(GRID_DIR+"/"+to_string(s.index));
 
         file<<"vbbox"<<endl;
         for(auto i : s.N_bbox.first) file<<i<<" ";
@@ -246,40 +255,6 @@ void grid::export_subdomains() const
 
         file.close();
     }
-}
-
-void grid::write_subdomain(std::ofstream & file, int i) const
-{
-    const subdomain & s = subdomains[i];
-    file<<s.i<<endl;
-
-    for(int d=0;d<dim;d++)
-    file<<s.N_bbox.first[d]<<endl;
-
-    for(int d=0;d<dim;d++)
-    file<<s.N_bbox.second[d]<<endl;
-
-    file<<s.neighboring_subdomains.size()<<endl;
-
-    for(auto n : s.neighboring_subdomains)
-    file<<n<<endl;
-}
-
-void grid::write_bboxes(std::ofstream & file) const
-{
-    for(auto vc : bbox.first) file<<vc<<endl;
-    for(auto vc : bbox.second) file<<vc<<endl;
-    for(auto vc : N_bbox.first) file<<vc<<endl;
-    for(auto vc : N_bbox.second) file<<vc<<endl;
-    for(auto h_ : h) file<<h_<<endl;
-}
-
-void grid::write_vertexes(std::ofstream & file) const
-{
-    file<<vertexes.size()<<endl;
-
-    for(auto v : vertexes)
-    file<<v.to_string();
 }
 
 
