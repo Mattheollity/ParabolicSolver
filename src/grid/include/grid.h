@@ -3,11 +3,11 @@
 
 #include "common.h"
 
-#include "vertex.h"
-#include "dim_iterator.h"
 #include "problem_conditions.h"
 #include "file_io.h"
-#include <vector>
+
+#include "vertex.h"
+#include "dim_iterator.h"
 
 struct vertex;
 struct subdomain;
@@ -142,9 +142,6 @@ struct interaction_request
     const vector<int> & input;
     const vector<int> & output;
 };
-
-
-
 
 
 

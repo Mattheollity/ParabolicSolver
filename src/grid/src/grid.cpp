@@ -1,12 +1,4 @@
 #include "grid.h"
-#include "common.h"
-#include "file_io.h"
-#include "problem_conditions.h"
-#include <algorithm>
-#include <filesystem>
-#include <fstream>
-#include <ostream>
-#include <string>
 
 grid::grid(const grid_conds & gc) :
     bbox(gc.bbox),
@@ -41,6 +33,8 @@ void grid::create_grid(const grid_conds & gc)
     assert_all_vertexes_has_subdomain();
 
     permutation = build_permutation_vector();
+
+    export_grid();
 
     cout<<"GRID WAS SUCCESSFULLY CREATED with time: "<<omp_get_wtime()-t0<<endl<<endl;
 }

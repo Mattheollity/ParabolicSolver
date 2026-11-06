@@ -1,5 +1,4 @@
 #include "dim_iterator.h"
-#include <vector>
 
 dim_iterator::dim_iterator(const pair<voxel_point, voxel_point> & bbox_) : 
     vbbox(bbox_),
