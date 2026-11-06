@@ -2,6 +2,7 @@
 #include "common.h"
 #include "file_io.h"
 #include "problem_conditions.h"
+#include <algorithm>
 #include <filesystem>
 #include <fstream>
 #include <ostream>
@@ -37,7 +38,6 @@ void grid::create_grid(const grid_conds & gc)
     for(int i=0; i<gc.subdomains.size(); i++)
     create_subdomain(i, gc.subdomains[i]);
 
-    connect_neighboring_subdomains();
     assert_all_vertexes_has_subdomain();
 
     permutation = build_permutation_vector();
@@ -66,6 +66,8 @@ void grid::fill_domain()
 
 void grid::find_neighbors_and_axis(vertex & v)
 {
+    int inner_cond = dim*2;
+
     auto & vc = v.voxel_coord;
     vector<int> neighbors;
     vector<int> neighbor_axis;
@@ -88,6 +90,9 @@ void grid::find_neighbors_and_axis(vertex & v)
 
     v.neighbors_indexes=neighbors;
     v.neighbors_dims=neighbor_axis;
+
+    if(neighbors.size()==inner_cond) inner.push_back(v.index);
+    else boundary.push_back(v.index);
 }
 
 int grid::global_index(const voxel_point & voxel_coord)
@@ -97,6 +102,88 @@ int grid::global_index(const voxel_point & voxel_coord)
     index+=csum[d]*voxel_coord[d];
 
     return index;
+}
+
+void grid::create_subdomain(int i, pair<point, point> bbox_)
+{
+    subdomains[i] = subdomain();
+    subdomains[i].index = i;
+    setup_subdomain_N_bbox(subdomains[i], bbox_);
+    fill_subdomain(subdomains[i]);
+}
+
+void grid::setup_subdomain_N_bbox(subdomain & s, pair<point, point> & bbox_)
+{
+    point & a = bbox_.first;
+    point & b = bbox_.second;
+
+    voxel_point va(dim);
+    voxel_point vb(dim);
+
+    for(unsigned d=0;d<dim;d++)
+    {
+        if(a[d]<bbox.first[d]) a[d]=bbox.first[d];
+        if(b[d]>bbox.second[d]) b[d]=bbox.second[d];
+
+        double eps = h[d]/2;
+
+        int A = (a[d]-bbox.first[d])/h[d];
+        if( a[d] - A*h[d] < eps) va[d] = A;
+        else va[d] = A+1;
+
+        int B = (b[d]-bbox.first[d])/h[d];
+        if( b[d] - B*h[d] < eps) vb[d] = B;
+        else vb[d] = B+1;
+
+        if(va[d]==0) va[d]+=1;
+        if(vb[d]==N_bbox[d]) vb[d]-=1;
+    }
+
+    s.N_bbox.first=va;
+    s.N_bbox.second=vb;
+}
+
+void grid::fill_subdomain(subdomain & s)
+{
+    for(dim_iterator di(s.N_bbox); !di.is_overfull(); ++di)
+    {
+        vertex & v = vertexes[global_index(di.voxel_coord)];
+
+        if(v.subdomain!=-1) throw simple_error("SUBDOMAINS CAN`T HAVE COMMON VERTEXES");
+        v.subdomain = s.index;
+    } 
+}
+
+void grid::find_inner_boundary_at_subdomains()
+{
+    int inner_vertex_cond = dim*2;
+
+    for(auto v : vertexes)
+    if(inner_vertex_cond == amount_neighbors_at_subdomain(v)) subdomains[v.subdomain].inner.push_back(v.index);
+    else subdomains[v.subdomain].boundary.push_back(v.index);
+}
+
+int grid::amount_neighbors_at_subdomain(const vertex & v) const
+{
+    int amount = 0;
+    for(auto n : v.neighbors_indexes)
+    {
+        auto nv = vertexes[n];
+        if(nv.subdomain==v.subdomain) amount++;
+    }
+    return amount;
+}
+
+void grid::assert_all_vertexes_has_subdomain() const
+{
+    int inner_vertex_cond = 2*dim;
+    #pragma omp parallel for firstprivate(vertexes, subdomains, inner_vertex_cond)
+    for(int i=0; i<vertexes.size(); i++)
+    if(
+        vertexes[i].neighbors_indexes.size()==inner_vertex_cond
+        &&
+        vertexes[i].subdomain==-1
+    ) throw("Any vertex must has subdomain or be boundary vertex");
 }
 
 bool grid::import_grid()
@@ -109,7 +196,7 @@ bool grid::import_grid()
 
         return res1 && res2;
     }
-    
+
     return false;
 }
 
@@ -257,112 +344,6 @@ void grid::export_subdomains() const
     }
 }
 
-
-
-pair<voxel_point, voxel_point> grid::truncate_subdomain_bbox(pair<point, point> & bbox_)
-{
-    point & a = bbox_.first;
-    point & b = bbox_.second;
-
-    voxel_point va(dim);
-    voxel_point vb(dim);
-
-    for(unsigned d=0;d<dim;d++)
-    {
-        if(a[d]<bbox.first[d]) a[d]=bbox.first[d];
-        if(b[d]>bbox.second[d]) b[d]=bbox.second[d];
-
-        double eps = h[d]/2;
-
-        int A = (a[d]-bbox.first[d])/h[d];
-        if( a[d] - A*h[d] < eps) va[d] = A;
-        else va[d] = A+1;
-
-        int B = (b[d]-bbox.first[d])/h[d];
-        if( b[d] - B*h[d] < eps) vb[d] = B;
-        else vb[d] = B+1;
-
-        if(va[d]==N_bbox.first[d]) va[d]+=1;
-        if(vb[d]==N_bbox.second[d]) vb[d]-=1;
-    }
-
-    return {va, vb};
-}
-
-void grid::fill_subdomain(subdomain & s)
-{
-    for
-    (
-        dim_iterator di(s.N_bbox, s.N_bbox.first);
-        !di.is_full();
-        ++di
-    )
-    {
-        vertex & v = vertexes[di.conv(N_bbox)];
-
-        if(v.containing_subdomain!=-1) throw simple_error("SUBDOMAINS CAN`T HAVE COMMON VERTEXES");
-        v.containing_subdomain = s.i;
-    } 
-}
-
-void grid::to_inner_or_to_boundary(vertex & v)
-{
-    if(v.at_bottom_boundary(N_bbox.first) || v.at_top_boundary(N_bbox.second))
-    {
-        v.boundary=true;
-        boundary.push_back(v.i);
-    }
-    else inner.push_back(v.i);
-}
-
-
-void grid::to_inner_or_to_boundary(subdomain & s, const vertex & v)
-{
-    if (v.at_top_boundary(s.N_bbox.second) || v.at_bottom_boundary(s.N_bbox.first))
-    {
-        bool boundary_neight = false;
-        bool another_subd = false;
-
-        for(auto n : v.neighbors)
-        if(vertexes[n.first].boundary) boundary_neight=true;
-        else if (vertexes[n.first].containing_subdomain!=s.i) another_subd=true;
-
-        if(another_subd) s.boundary.push_back(v.i);
-        else if(boundary_neight) s.inner.push_back(v.i);
-        else throw simple_error("UNDEFINED VERTEX BOUNDARY TYPE");
-    }
-    else s.inner.push_back(v.i);
-}
-
-
-void grid::find_neighboring_subdomains()
-{
-    for(int i=0;i<subdomains.size();i++)
-    {
-        for(auto v_i : subdomains[i].boundary)
-        for(auto j : vertexes[v_i].neighbors)
-        subdomains[i].neighboring_subdomains.insert(vertexes[j.first].containing_subdomain);
-        
-        subdomains[i].neighboring_subdomains.erase(subdomains[i].i);
-    }
-}
-
-int grid::find_index_in_part(int v_index, const vector<int> & input) const
-{
-    int pos = 0;
-    auto v = std::find
-    (
-        input.begin(),
-        input.end(),
-        v_index
-    );
-        
-    if(v!=input.end()) pos = v-input.begin();
-    else pos = -1;
-
-    return pos;
-}
-
 point grid::to_real_coord(voxel_point vp) const
 {
     point p(dim);
@@ -381,79 +362,125 @@ voxel_point grid::to_voxel_coord(point p) const
     return vp;
 }
 
-vector<interaction> grid::get_subdomains_interaction(int i, int j) const
+vector<interaction> grid::get_interaction_between(int i, int j) const
 {
     if( !(i<subdomains.size() && j<subdomains.size()) ) throw simple_error("index of subdomain out of range");
-    if(i==j) return get_subdomain_interaction(i);
+    if(i==j) return get_self_interaction(i);
 
     interaction io;
-    io.h = h;
 
     const vector<int> & output = subdomains[i].boundary;
     const vector<int> & input = subdomains[j].boundary;
-    fill_interaction_between(io, input, output);
+    
+    interaction_request bb = {
+        j,
+        i,
+        inner,
+        output
+    };
 
-    return {io};
+    return {create_interaction(bb)};
 }
 
-vector<interaction> grid::get_subdomain_interaction(int i) const
+vector<interaction> grid::get_self_interaction(int i) const
 {
     if( !(i<subdomains.size()) ) throw simple_error("index of subdomain out of range");
 
     const vector<int> & inner_ = subdomains[i].inner;
     const vector<int> & boundary_ = subdomains[i].boundary;
-    vector<interaction> io (3);
 
-    io[0].h = h;
-    io[1].h = h;
-    io[2].h = h;
+    interaction_request ii = {
+        i,
+        i,
+        inner_,
+        inner_
+    };
 
-    fill_interaction_between(io[0], inner_, inner_);
-    fill_interaction_between(io[1],inner_,boundary_);
-    fill_interaction_between(io[2],boundary_,boundary_);
+    interaction_request ib = {
+        i,
+        i,
+        inner_,
+        boundary_
+    };
 
-    return io;
+    interaction_request bb = {
+        i,
+        i,
+        boundary_,
+        boundary_
+    };
+
+
+    return {
+        create_interaction(ii),
+        create_interaction(ib),
+        create_interaction(bb)
+    };
 }
 
-void grid::fill_interaction_between(interaction & io, const vector<int> & input, const vector<int> & output) const
-{
-    io.io_size = {input.size(),output.size()};
-    io.outputs = vector<vertex> (output.size());
-    io.inputs = vector<list<pair<int, vertex>>> (output.size());
-
-    #pragma omp parallel shared(io, input, output)
-    #pragma omp for
-    for(int i=0; i<output.size(); i++)
-    {
-        io.outputs[i] = vertexes[output[i]];
-
-        find_neighbors_in_part(io.outputs[i], io.inputs[i], input);
-
-        if(&output==&input)
-        io.inputs[i].push_back({i, vertexes[input[i]]});
-    }
-}
-
-void grid::find_neighbors_in_part(const vertex & v, list<pair<int, vertex>> & io_input, const vector<int> & input) const
-{
-    const vector<pair<int, int>> & nbs = v.neighbors;
-    for(int j=0;j<nbs.size(); j++)
-    {
-        int k = find_index_in_part(nbs[j].first, input);
-        #pragma omp critical
-        if( k != -1) io_input.push_back({k, vertexes[input[k]]});
-    }
-}
-
-interaction grid::get_inner_boundary_transpose_interaction() const
+interaction grid::create_interaction(const interaction_request & ior) const
 {
     interaction io;
-    io.h = h;
-    fill_interaction_between(io, inner, boundary);
+    io.input_size = ior.input.size();
+    io.output_size = ior.output.size();
+    io.input_subdomain = ior.input_subdomain;
+    io.output_subdomain = ior.output_subdomain;
+    io.vertexes_io = vector<vertex_interactions>(io.output_size);
+
+    #pragma omp parallel shared(io, ior)
+    #pragma omp for
+    for(int i=0; i<io.output_size; i++)
+    {
+        vertex_interactions_request vir = {
+            i,
+            ior.output[i],
+            ior.input_subdomain,
+            ior.input
+        };
+        io.vertexes_io[i] = create_vertex_interactions(vir);
+    }
+
     return io;
 }
 
-vector<point> grid::get_boundary_points() const
+vertex_interactions grid::create_vertex_interactions(const vertex_interactions_request & vir) const
+{
+    const vertex & v = vertexes[vir.vertex_index];
+    vertex_interactions vio;
+    vio.output_index = vir.output_index;
+    vio.output_coord = v.voxel_coord;
+
+    vector<int> input_vertex_indexes;
+    for(auto nv : v.neighbors_indexes)
+    if(vertexes[nv].subdomain==vir.input_subdomain)
+    input_vertex_indexes.push_back(nv);
+
+    for(int i : input_vertex_indexes)
+    vio.input_indexes.push_back(
+        std::find(vir.input.begin(), vir.input.end(), i)
+        -
+        vir.input.begin()
+    );
+    
+    for(int i : input_vertex_indexes)
+    vio.input_coords.push_back(vertexes[i].voxel_coord);
+
+    return vio;
+}
+
+interaction grid::get_inner_boundary_interaction() const
+{
+    interaction_request ior = {
+        0,
+        -1,
+        inner,
+        boundary
+    };
+
+    return create_interaction(ior);
+}
+
+const vector<point> grid::get_boundary_points() const
 {
     vector<point> bp(boundary.size());
     for(int i=0;i<boundary.size();i++)
@@ -462,7 +489,7 @@ vector<point> grid::get_boundary_points() const
     return bp;
 }
 
-vector<point> grid::get_inner_points() const
+const vector<point> grid::get_inner_points() const
 {
     vector<point> bp(inner.size());
     for(int i=0;i<inner.size();i++)
@@ -471,7 +498,7 @@ vector<point> grid::get_inner_points() const
     return bp;
 }
 
-vector<int> grid::build_permutation_along_subd()
+vector<int> grid::build_permutation_vector()
 {
     double t1 = omp_get_wtime();
     vector<int> permutation (inner.size());
@@ -510,11 +537,4 @@ vector<int> grid::build_permutation_along_subd()
 
     cout<<"Permutation`s indices was created with time: "<<t2-t1<<endl<<endl;
     return permutation;
-}
-
-void grid::assert_all_vertexes_has_subdomain() const
-{
-    #pragma omp parallel for firstprivate(vertexes, subdomains)
-    for(int i=0; i<vertexes.size(); i++)
-    if(vertexes[i].boundary==false && vertexes[i].containing_subdomain==-1) throw("Any vertex must has subdomain or be boundary vertex");
 }
