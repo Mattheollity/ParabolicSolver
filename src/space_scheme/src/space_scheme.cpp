@@ -1,3 +1,5 @@
+#include "space_scheme.h"
+
 #include "common.h"
 #include "file_io.h"
 #include "poisson.h"
@@ -5,6 +7,11 @@
 #include <vector>
 #include "eexpokit/expv.hpp"
 #include "problem_conditions.h"
+
+anisotrop_laplace::anisotrop_laplace(string SPACE_APPROX_DIR)
+{
+    
+}
 
 double trip_sin(const point p)
 {

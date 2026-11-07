@@ -1,11 +1,32 @@
-#ifndef IAS_
-#define IAS_
+#ifndef SPACE_SCHEME_
+#define SPACE_SCHEME_
 
 #include "common.h"
-#include "poisson.h"
-#include "problem_conditions.h"
 
-double trip_sin(const point p);
+#include "problem_conditions.h"
+#include "file_io.h"
+
+struct anisotrop_laplace
+{
+    vector<double> k;
+    vector<double> h;
+    double operator()(const voxel_point & a, const voxel_point & b);
+
+    anisotrop_laplace(string SPACE_APPROX_DIR);
+};
+
+
+
+struct const_dirichlet
+{
+    double C;
+    double operator()(const voxel_point &) {return C;}
+
+    const_dirichlet(string SPACE_APPROX_DIR);
+};
+
+
+
 double real_solution(int dim, const point p, double t);
 vect y0(const grid & gr, vect & v);
 

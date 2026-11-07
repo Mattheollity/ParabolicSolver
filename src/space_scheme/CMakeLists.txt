@@ -5,15 +5,15 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_STANDARD 17)
 
 add_library(
-    poisson
+    space_scheme
     STATIC
-    src/poisson.cpp
-    src/approx.cpp
+    src/matrix_assembler.cpp
+    src/space_scheme.cpp
 )
-target_link_libraries(poisson grid)
+target_link_libraries(space_scheme PUBLIC grid)
 
 target_include_directories(
-    poisson
+    space_scheme
     PUBLIC
     include
 )
