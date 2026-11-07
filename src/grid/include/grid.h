@@ -42,7 +42,7 @@ class grid
     int global_index(const voxel_point &);
 
     void create_subdomain(int i, pair<point, point> bbox_);
-    void fill_subdomain(subdomain &);
+    void mark_vertexes_subdomains(subdomain &);
     void setup_subdomain_N_bbox(subdomain &, pair<point, point> &);
     void find_inner_boundary_at_subdomains();
     int amount_neighbors_at_subdomain(const vertex &) const;

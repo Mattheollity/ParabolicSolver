@@ -1,6 +1,7 @@
 #include "grid.h"
 #include "file_io.h"
 #include "problem_conditions.h"
+#include <cstdio>
 #include <omp.h>
 #include <vector>
 
@@ -47,6 +48,8 @@ void grid::create_grid()
     for(int i=0; i<gc.subdomains.size(); i++)
     create_subdomain(i, gc.subdomains[i]);
 
+    find_inner_boundary_at_subdomains();
+
     assert_all_vertexes_has_subdomain();
 
     permutation = build_permutation_vector();
@@ -89,15 +92,17 @@ void grid::find_neighbors_and_axis(vertex & v)
         auto foo = vc;
         foo[d]+=1;
         neighbors.push_back(global_index(foo));
-        neighbor_axis.push_back(d);
+        neighbor_axis.push_back(d+1);
     }
-    else if (v.voxel_coord[d]-1>=0)
+    for(int d=0;d<dim;d++)
+    if (vc[d]-1>=0)
     {
         auto foo = vc;
         foo[d]-=1;
         neighbors.push_back(global_index(foo));
-        neighbor_axis.push_back(-d);
+        neighbor_axis.push_back(-d-1);
     }
+
     v.neighbors_indexes=neighbors;
     v.neighbors_dims=neighbor_axis;
     if(neighbors.size()==inner_cond) inner.push_back(v.index);
@@ -115,10 +120,15 @@ int grid::global_index(const voxel_point & voxel_coord)
 
 void grid::create_subdomain(int i, pair<point, point> bbox_)
 {
+    double t0 = omp_get_wtime();
+    cout<<"Creating subdomains..."<<endl;
+
     subdomains[i] = subdomain();
     subdomains[i].index = i;
     setup_subdomain_N_bbox(subdomains[i], bbox_);
-    fill_subdomain(subdomains[i]);
+    mark_vertexes_subdomains(subdomains[i]);
+
+    cout<<"End creating subdomains with time: "<<omp_get_wtime()-t0<<endl<<endl;
 }
 
 void grid::setup_subdomain_N_bbox(subdomain & s, pair<point, point> & bbox_)
@@ -152,7 +162,7 @@ void grid::setup_subdomain_N_bbox(subdomain & s, pair<point, point> & bbox_)
     s.N_bbox.second=vb;
 }
 
-void grid::fill_subdomain(subdomain & s)
+void grid::mark_vertexes_subdomains(subdomain & s)
 {
     for(dim_iterator di(s.N_bbox); !di.is_overfull(); ++di)
     {
@@ -168,8 +178,11 @@ void grid::find_inner_boundary_at_subdomains()
     int inner_vertex_cond = dim*2;
 
     for(auto v : vertexes)
-    if(inner_vertex_cond == amount_neighbors_at_subdomain(v)) subdomains[v.subdomain].inner.push_back(v.index);
-    else subdomains[v.subdomain].boundary.push_back(v.index);
+    if(v.subdomain!=-1)
+    {
+        if(inner_vertex_cond == amount_neighbors_at_subdomain(v)) subdomains[v.subdomain].inner.push_back(v.index);
+        else subdomains[v.subdomain].boundary.push_back(v.index);
+    }
 }
 
 int grid::amount_neighbors_at_subdomain(const vertex & v) const
@@ -227,18 +240,22 @@ bool grid::import_domain()
     {
         file>>ibuf;
         vertexes = vector<vertex> (ibuf);
-        permutation = vector<int> (ibuf);
     }
     else throw simple_error("Expected amount at vertex file");
 
     for(int i=0;i<vertexes.size();i++)
     {
-        file>>buf;
+        getline(file, buf);
         vertexes[i].string_import(buf);
+
+        if(vertexes[i].subdomain==-1) boundary.push_back(i);
+        else inner.push_back(i);
     }   
     file.close();
 
     std::ifstream file2(GRID_DIR+"/permutation");
+
+    permutation = vector<int> (inner.size());
 
     for(int i=0;i<permutation.size();i++)
     {
@@ -322,7 +339,7 @@ void grid::export_grid() const
 void grid::export_domain() const
 {
     std::ofstream file(GRID_DIR+"/vertexes");
-    file<<"amount "<<vertexes.size();
+    file<<"amount "<<vertexes.size()<<endl;
     for(vertex v : vertexes) file<<v.string_export()<<endl;
     file.close();
 
@@ -349,10 +366,10 @@ void grid::export_subdomains() const
         file<<endl;
 
         file<<"inner_indexes"<<endl;
-        file<<"amount "<<s.inner.size();
+        file<<"amount "<<s.inner.size()<<endl;
         for(auto i : s.inner) file<<i<<endl;
         file<<"boundary_indexes"<<endl;
-        file<<"amount "<<s.boundary.size();
+        file<<"amount "<<s.boundary.size()<<endl;
         for(auto i : s.boundary) file<<i<<endl;
 
         file.close();
@@ -516,7 +533,7 @@ const vector<point> grid::get_inner_points() const
 vector<int> grid::build_permutation_vector()
 {
     double t1 = omp_get_wtime();
-    vector<int> permutation (inner.size());
+    vector<int> permutation_ (inner.size());
     vector<int> paddings (subdomains.size()+1);
 
     paddings[0] = 0;
@@ -524,23 +541,23 @@ vector<int> grid::build_permutation_vector()
     paddings[i+1] = paddings[i] + subdomains[i].boundary.size() + subdomains[i].inner.size();
 
     omp_set_nested(1);
-    #pragma omp parallel for shared(paddings, permutation, subdomains, inner)
+    #pragma omp parallel for shared(paddings, permutation_, subdomains, inner)
     for(int i=0; i<subdomains.size(); i++)
     {
         const subdomain & s = subdomains[i];
 
-        #pragma omp parallel for shared(paddings, permutation, subdomains, inner, i)
+        #pragma omp parallel for shared(paddings, permutation_, subdomains, inner, i)
         for(int j=0; j<s.inner.size(); j++)
-        permutation[paddings[i]+j] = std::lower_bound
+        permutation_[paddings[i]+j] = std::lower_bound
         (
             inner.begin(),
             inner.end(),
             s.inner[j]
         ) - inner.begin();
 
-        #pragma omp parallel for shared(paddings, permutation, subdomains, inner, i)
+        #pragma omp parallel for shared(paddings, permutation_, subdomains, inner, i)
         for(int j=0; j<s.boundary.size(); j++)
-        permutation[paddings[i] + s.inner.size() + j] = std::lower_bound
+        permutation_[paddings[i] + s.inner.size() + j] = std::lower_bound
         (
             inner.begin(),
             inner.end(),
@@ -551,5 +568,5 @@ vector<int> grid::build_permutation_vector()
     double t2 = omp_get_wtime();
 
     cout<<"Permutation`s indices was created with time: "<<t2-t1<<endl<<endl;
-    return permutation;
+    return permutation_;
 }
