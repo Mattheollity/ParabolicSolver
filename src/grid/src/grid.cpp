@@ -20,6 +20,10 @@ void grid::setup_grid()
     N_bbox = gc.N;
     h = vector<double> (dim);
     subdomains = vector<subdomain> (gc.subdomains.size());
+
+    csum = vector<int> (dim, 1);
+    for(int d=1;d<dim;d++)
+    csum[d]*=csum[d-1]*N_bbox[d-1];
 }
 
 void grid::create_grid()
@@ -94,10 +98,8 @@ void grid::find_neighbors_and_axis(vertex & v)
         neighbors.push_back(global_index(foo));
         neighbor_axis.push_back(-d);
     }
-
     v.neighbors_indexes=neighbors;
     v.neighbors_dims=neighbor_axis;
-
     if(neighbors.size()==inner_cond) inner.push_back(v.index);
     else boundary.push_back(v.index);
 }
