@@ -27,3 +27,7 @@ add_executable(
 
 target_link_libraries(grid_test PUBLIC grid)
 target_link_libraries(grid_test PRIVATE Catch2::Catch2WithMain)
+
+set_target_properties(grid_test PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}"
+)

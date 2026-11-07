@@ -1,22 +1,35 @@
 #include "grid.h"
+#include "file_io.h"
+#include "problem_conditions.h"
+#include <omp.h>
+#include <vector>
 
-grid::grid(const grid_conds & gc) :
-    bbox(gc.bbox),
-    dim(gc.N.size()),
-    N_bbox(gc.N),
-    h(dim),
-    subdomains(gc.subdomains.size())
+grid::grid(string GRID_DIR_) :
+    GRID_DIR(GRID_DIR_)
 {
+    setup_grid();
     bool succed_import = import_grid();
-    if(!succed_import) create_grid(gc);
+    if(!succed_import) create_grid();
 }
 
-void grid::create_grid(const grid_conds & gc)
+void grid::setup_grid()
+{
+    grid_conds gc = load_grid_conds(GRID_DIR+"/grid_conds");
+    bbox = gc.bbox;
+    dim = gc.N.size();
+    N_bbox = gc.N;
+    h = vector<double> (dim);
+    subdomains = vector<subdomain> (gc.subdomains.size());
+}
+
+void grid::create_grid()
 {
     double t0;
 
     cout<<"---------------GRID CREATION--------------"<<endl;
     t0 = omp_get_wtime();
+
+    grid_conds gc = load_grid_conds(GRID_DIR+"/grid_conds");
 
     for(int i=0;i<dim;i++)
     h[i] = (bbox.second[i] - bbox.first[i])/(N_bbox[i]-1);
@@ -185,8 +198,14 @@ bool grid::import_grid()
     if(fs::exists(GRID_DIR+"/exp_grid_conds"))
     if(file_equality(GRID_DIR+"/grid_conds", GRID_DIR+"/exp_grid_conds"))
     {
+
+        double t0 = omp_get_wtime();
+        cout<<"Expected created grid. Try to load..."<<endl;
+
         bool res1 = import_domain();
         bool res2 = import_subdomains();
+
+        cout<<"Successfully loaded with time: "<<omp_get_wtime()-t0<<endl<<endl;
 
         return res1 && res2;
     }

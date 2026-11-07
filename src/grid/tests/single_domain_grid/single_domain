@@ -1,15 +1,14 @@
-dim
-1
-
+dim 3
 bbox
-0
-1
+0 0 0
+1 1 1
 
 vbbox
-11
+10 10 10
 
 amountsubd 1
+
 sections
 subd
-0
-1
+0 0 0
+1 1 1

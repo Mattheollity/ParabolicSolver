@@ -14,6 +14,7 @@ struct vertex
     vector<int> neighbors_indexes;
     vector<int> neighbors_dims;
 
+    vertex() {};
     vertex(int index_, voxel_point vp);
 
     string string_export() const;

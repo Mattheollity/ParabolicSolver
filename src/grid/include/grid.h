@@ -35,8 +35,8 @@ class grid
 
     string GRID_DIR;
 
-
-    void create_grid(const grid_conds &);
+    void setup_grid();
+    void create_grid();
     void fill_domain();
     void find_neighbors_and_axis(vertex &);
     int global_index(const voxel_point &);
@@ -70,8 +70,7 @@ class grid
 
     public:
 
-    grid(const grid_conds &);
-    grid(const string GRID_FILENAME);
+    grid(string GRID_DIR_);
 
     vector<interaction> get_interaction_between(int i, int j) const;
     vector<interaction> get_self_interaction(int i) const;
