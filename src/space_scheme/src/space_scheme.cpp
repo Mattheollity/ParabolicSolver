@@ -1,16 +1,28 @@
 #include "space_scheme.h"
+#include <fstream>
 
-#include "common.h"
-#include "file_io.h"
-#include "poisson.h"
-#include <cmath>
-#include <vector>
-#include "eexpokit/expv.hpp"
-#include "problem_conditions.h"
+double space_scheme::operator()(const vector<voxel_point &>)
+{
+
+}
+
+space_scheme load_space_scheme(string SCHEME_DIR)
+{
+    
+}
 
 anisotrop_laplace::anisotrop_laplace(string SPACE_APPROX_DIR)
 {
+    if(!fs::exists(SPACE_APPROX_DIR+"/space_scheme")) throw simple_error(string("space_scheme ")+" file is not exist");
+    std::ifstream file(SPACE_APPROX_DIR+"/space_scheme");
+
+    string buf;
     
+    file>>buf;
+    if(file)
+    else throw simple_error("expected bbox");
+
+    file.close();
 }
 
 double trip_sin(const point p)

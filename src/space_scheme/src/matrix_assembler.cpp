@@ -1,4 +1,83 @@
-#include "poisson.h"
+#include "matrix_assembler.h"
+#include "common.h"
+#include "grid.h"
+#include <filesystem>
+
+matrix_assembler::matrix_assembler(case_config cc_) : cc(cc_)
+{
+    if(ability_to_import()) import_matrixes();
+    else create_from_grid();
+}
+
+void matrix_assembler::create_from_grid()
+{
+    g = new grid(cc.GRID_DIR);
+    set_scheme();
+
+    build_permutation();
+    build_subdomain_systems();
+    build_base_boundary_system();
+
+    delete g;
+}
+
+void matrix_assembler::build_permutation()
+{
+    auto permutation_vector = g->get_permutation_vector();
+    vector<triplet> trp (permutation_vector.size());
+
+    #pragma omp parallel for shared(permutation_vector, trp)
+    for(int i=0; i<trp.size(); i++)
+    trp[i] = triplet(i, permutation_vector[i], 1);
+
+    permutation.setFromTriplets(trp.begin(), trp.end());
+}
+
+void matrix_assembler::build_subdomain_systems()
+{
+    subdomain_systems.resize(g->get_amount_subdomains());
+    
+    for(int i=0;i<subdomain_systems.size();i++)
+    {
+        vector<interaction> subd_intr = g->get_self_interaction(i);
+        build_spmat_from_interaction(subd_intr[0], subdomain_systems[i].ii);
+        build_spmat_from_interaction(subd_intr[1], subdomain_systems[i].ib);
+        build_spmat_from_interaction(subd_intr[2], subdomain_systems[i].bb);
+    }
+}
+
+void matrix_assembler::build_spmat_from_interaction(const interaction & intr, spmat & target)
+{
+    target = spmat(intr.output_size, intr.input_size);
+    vector<triplet> trp;
+
+    for(int i=0;i<intr.output_size;i++)
+    for(int j=0;j<intr.vertexes_io[i].input_indexes.size();j++)
+    trp.push_back
+    (triplet(
+        intr.vertexes_io[i].output_index,
+        intr.vertexes_io[i].input_indexes[j],
+        scheme(intr.vertexes_io[i].output_coord, intr.vertexes_io[i].input_coords[j])
+    ));
+}
+
+bool matrix_assembler::ability_to_import()
+{
+    if
+    (
+        fs::exists(cc.SPACE_DIR+"/used_grid_conds") &&
+        fs::exists(cc.GRID_DIR+"/exp_grid_conds") &&
+        fs::exists(cc.GRID_DIR+"grid_conds")
+    )
+    if
+    (
+        file_equality(cc.GRID_DIR+"/grid_conds", cc.GRID_DIR+"/exp_grid_conds") &&
+        file_equality(cc.SPACE_DIR+"/used_grid_conds", cc.GRID_DIR+"/grid_conds")
+    )
+    return true;
+
+    return false;
+}
 
 poisson_system::poisson_system(const grid & g, const approx & appc) :
     poissonlog(std::stringstream())

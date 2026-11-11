@@ -232,3 +232,40 @@ void write_matrix(vect m, string s)
     for(int i=0;i<m.rows();i++)
     {for(int j=0;j<m.cols();j++) file<<m.coeff(i, j)<<" "; file<<"\n";}
 }
+
+void import_spmat(string FILENAME, spmat & mat)
+{
+    std::ifstream in(FILENAME);
+
+    long long rows, cols, nnz;
+    in >> rows >> cols >> nnz;
+
+    std::list<Eigen::Triplet<double>> triplets;
+
+    for (long long i = 0; i < nnz; ++i) {
+        long long row, col;
+        double val;
+        in >> row >> col >> val;
+
+        triplets.push_back(
+            triplet(
+                static_cast<int>(row),
+                static_cast<int>(col),
+                val
+            ));
+    }
+
+    mat = spmat(static_cast<int>(rows), static_cast<int>(cols));
+    mat.setFromTriplets(triplets.begin(), triplets.end());
+}
+
+void export_spmat(string FILENAME, const spmat & mat)
+{
+    std::ofstream out(FILENAME);
+    out.precision(17);
+    out << mat.rows() << " " << mat.cols() << " " << mat.nonZeros() << "\n";
+
+    for (int j = 0; j < mat.outerSize(); ++j)
+    for (Eigen::SparseMatrix<double>::InnerIterator it(mat, j); it; ++it)
+    out << it.row() << " " << it.col() << " " << it.value() << "\n";
+}

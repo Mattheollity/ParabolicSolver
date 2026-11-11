@@ -1,16 +1,63 @@
-#ifndef POISSON_
-#define POISSON_
+#ifndef MATRIX_ASSEMBLER_
+#define MATRIX_ASSEMBLER_
 
+#include "file_io.h"
 #include "grid.h"
 #include "common.h"
 #include "problem_conditions.h"
+#include "space_scheme.h"
 #include <sstream>
 
-typedef vector<vector<spmat>> spsys;
+typedef vector<vector<spmat>> block_matrix;
 
-struct sparse_system
+struct subdomain_system
 {
-    spsys system;
+    spmat ii;
+    spmat ib;
+    spmat bb;
+    spmat global_boundary;
+};
+
+class matrix_assembler
+{
+    case_config cc;
+    grid * g;
+    space_scheme scheme;
+
+    spmat permutation;
+    list<triplet> base_boundary_system;
+    vector<subdomain_system> subdomain_systems;
+
+
+
+    void create_from_grid();
+    void set_scheme();
+
+    void build_permutation();
+    void build_base_boundary_system();
+    void build_subdomain_systems();
+
+    void build_spmat_from_interaction(const interaction &, spmat &);
+
+    bool ability_to_import();
+    void import_matrixes();
+    void export_matrixes();
+
+
+    
+    public:
+
+    matrix_assembler(case_config cc_);
+    const spmat & get_permutation();
+    const list<triplet> & get_base_boundary_system();
+    const subdomain_system & get_subdomain_system(int subdomain);
+
+};
+
+struct space_system
+{
+    block_matrix system;
+    
     spmat right_addition;
     spmat permutation;
     int amount_of_parts;

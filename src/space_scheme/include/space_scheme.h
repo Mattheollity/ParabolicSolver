@@ -6,11 +6,18 @@
 #include "problem_conditions.h"
 #include "file_io.h"
 
-struct anisotrop_laplace
+struct space_scheme
+{
+    virtual double operator()(const voxel_point & base, const voxel_point & s_point);
+};
+
+space_scheme load_space_scheme(string SCHEME_DIR);
+
+struct anisotrop_laplace : space_scheme
 {
     vector<double> k;
     vector<double> h;
-    double operator()(const voxel_point & a, const voxel_point & b);
+    virtual double operator()(const vector<voxel_point &>) override;
 
     anisotrop_laplace(string SPACE_APPROX_DIR);
 };
@@ -24,18 +31,4 @@ struct const_dirichlet
 
     const_dirichlet(string SPACE_APPROX_DIR);
 };
-
-
-
-double real_solution(int dim, const point p, double t);
-vect y0(const grid & gr, vect & v);
-
-double approx_func(const approx &, const vertex & main, const vertex & neighbor);
-double dirich_boundary_conds(point, double t);
-vect get_solution_at_time_step(const grid &, const time_integr_conds & tic, int N);
-vect get_time_deriv_at_time_step(const grid &, const time_integr_conds & tic, int N);
-vect get_dummy_time_deriv_at_time_step(const grid &, const time_integr_conds & tic, int N);
-vect get_laplace_at_time_step(const grid &, const time_integr_conds & tic, const sparse_system & p_system, int N);
-double get_laplace_eqlid_at_time_step(const grid &, const time_integr_conds & tic, const sparse_system & p_system, int N);
-
 #endif

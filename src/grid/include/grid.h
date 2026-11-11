@@ -85,9 +85,10 @@ class grid
     const pair<point, point> & get_bbox() const {return bbox;}
     const voxel_point & get_vbbox() const {return N_bbox;}
     const vector<double> & get_h() const {return h;}
-    const vector<point> get_boundary_points() const;
-    const vector<point> get_inner_points() const;
-    const vector<int> get_permutation_vector() const {return permutation;}
+    const vector<point> & get_boundary_points() const;
+    const vector<point> & get_inner_points() const;
+    const vector<int> & get_permutation_vector() const {return permutation;}
+    int get_amount_subdomains() const {return subdomains.size();}
     
 };
 
