@@ -16,22 +16,15 @@ struct subdomain;
 
 class grid
 {
-    geometry * g;
-    
-
-    vector<subdomain_interaction> subd_intr;
-    interaction boundaries_intr;
-
     case_config cc;
     string GRID_DIR;
 
+    geometry * g;
     
-
-
+    vector<subdomain_interaction> subd_intr;
+    interaction boundaries_intr;
 
     
-
-
 
     void build_self_subdomain_interactions();
     void build_subdomain_interaction(int i);
@@ -60,17 +53,12 @@ class grid
     public:
 
     grid(case_config cc_);
+    ~grid();
 
     vector<subdomain_interaction> get_subdomain_interactions() const;
     interaction get_boundaries_interaction() const;
 
-    const grid_conds get_gc() const {return gc;}
-    const vector<double> & get_h() const {return h;}
-    const vector<point> & get_boundary_points() const;
-    const vector<point> & get_inner_points() const;
-    const vector<int> & get_permutation_vector() const {return permutation;}
-    int get_amount_subdomains() const {return subdomains.size();}
-    
+    const vector<int> & get_permutation_vector() const {return g->get_permutation();}
 };
 
 

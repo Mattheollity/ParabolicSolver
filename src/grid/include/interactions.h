@@ -23,9 +23,6 @@ struct vertex_interaction_request
 
 struct interaction
 {
-    int input_subdomain;
-    int output_subdomain;
-
     int input_size;
     int output_size;
     

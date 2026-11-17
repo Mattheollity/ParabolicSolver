@@ -8,7 +8,6 @@ add_library(
     grid
     STATIC
     src/grid.cpp
-    src/grid_interactions.cpp
 )
 target_link_libraries(grid PUBLIC geometry)
 target_include_directories(

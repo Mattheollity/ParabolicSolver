@@ -261,3 +261,13 @@ voxel_point geometry::to_voxel_coord(point p) const
 
     return vp;
 }
+
+int geometry::find_local_index(int i, const vector<int> & local) const
+{
+    return std::lower_bound
+        (
+            local.begin(),
+            local.end(),
+            i
+        ) - local.begin();
+}
