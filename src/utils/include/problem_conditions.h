@@ -19,15 +19,18 @@ struct approx
 
 struct grid_conds
 {
+    int dim;
     pair<point, point> bbox;
     voxel_point N;
     vector<pair<point, point>> subdomains;
 
+    grid_conds();
     grid_conds(
+        int dim_,
         pair<point, point> bbox_,
         voxel_point N_,
         vector<pair<point, point>> subdomains_
-    ) : bbox(bbox_), N(N_), subdomains(subdomains_) {};
+    ) : dim(dim_), bbox(bbox_), N(N_), subdomains(subdomains_) {};
 };
 
 struct time_integr_conds

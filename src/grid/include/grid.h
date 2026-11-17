@@ -8,20 +8,20 @@
 
 #include "vertex.h"
 #include "dim_iterator.h"
+#include "interactions.h"
 
-struct vertex;
-struct subdomain;
-struct interaction;
-struct vertex_interactions;
-struct interaction_request;
-struct vertex_interactions_request;
+struct subdomain_interaction;
+
 class grid;
+struct grid_conds;
+struct subdomain;
+
+
 
 class grid
 {
-    int dim;
-    pair<point, point> bbox;
-    voxel_point N_bbox;
+    grid_conds gc;
+
     vector<int> csum;
     vector<double> h;
     
@@ -31,32 +31,43 @@ class grid
 
     vector<subdomain> subdomains;
 
+    vector<subdomain_interaction> subd_intr;
+    interaction boundaries_intr;
+
     vector<int> permutation;
 
+    case_config cc;
     string GRID_DIR;
 
-    void setup_grid();
+
+
+    void setup_grid_conds();
+
+
+
     void create_grid();
     void fill_domain();
     void find_neighbors_and_axis(vertex &);
     int global_index(const voxel_point &);
 
+    void setup_subdomains();
     void create_subdomain(int i, pair<point, point> bbox_);
-    void mark_vertexes_subdomains(subdomain &);
+    void mark_subdomains_vertexes(subdomain &);
     void setup_subdomain_N_bbox(subdomain &, pair<point, point> &);
     void find_inner_boundary_at_subdomains();
+    void assert_all_vertexes_has_subdomain() const;
     int amount_neighbors_at_subdomain(const vertex &) const;
     
-    void assert_all_vertexes_has_subdomain() const;
-    
-    subdomain import_subdomain(string filename);
-    subdomain export_subdomain(string filename);
-    vector<int> build_permutation_vector();
+
+
+    void build_permutation_vector();
 
     bool is_boundary(const vertex &) const;
     bool is_boundary(const subdomain &, const vertex &) const;
     point to_real_coord(voxel_point) const;
     voxel_point to_voxel_coord(point) const;
+
+
 
     bool import_grid();
     bool import_domain();
@@ -68,22 +79,40 @@ class grid
 
 
 
+    void build_self_subdomain_interactions();
+    void build_subdomain_interaction(int i);
+    vector<interaction_request> build_subdomain_interaction_requests(int i);
+    void build_part_of_subdomain_interaction(interaction &, const interaction_request &);
+    vertex_interaction create_vertex_interactions(const vertex_interaction_request &) const;
+
+
+
+    void build_boundaries_interaction();
+
+    vector<int> bvio_csum() const;
+    interaction setup_boundaries_interaction() const;
+
+    void fill_bvio(vector<vertex_interaction> &);
+    vector<int> local_indexes_of_neighbors_for_bi(const vector<int> & gni, const vector<int> & csum) const;
+    vector<int> global_indexes_of_neighbors_for_bi(int i) const;
+    vector<voxel_point> global_coords_of_neighbors_for_bi(const vector<int> &) const;
+
+    int find_local_index(int i, const vector<int> &) const;
+
+    
+    interaction create_global_interaction();
+    
+
+
+
     public:
 
-    grid(string GRID_DIR_);
+    grid(case_config cc_);
 
-    vector<interaction> get_interaction_between(int i, int j) const;
-    vector<interaction> get_self_interaction(int i) const;
-    interaction create_interaction(const interaction_request &) const;
-    vertex_interactions create_vertex_interactions(const vertex_interactions_request &) const;
+    vector<subdomain_interaction> get_subdomain_interactions() const;
+    interaction get_boundaries_interaction() const;
 
-    interaction get_inner_boundary_interaction() const;
-
-
-
-    int get_dim() const {return dim;}
-    const pair<point, point> & get_bbox() const {return bbox;}
-    const voxel_point & get_vbbox() const {return N_bbox;}
+    const grid_conds get_gc() const {return gc;}
     const vector<double> & get_h() const {return h;}
     const vector<point> & get_boundary_points() const;
     const vector<point> & get_inner_points() const;
@@ -91,6 +120,7 @@ class grid
     int get_amount_subdomains() const {return subdomains.size();}
     
 };
+
 
 
 struct subdomain
@@ -105,43 +135,6 @@ struct subdomain
 
 
 
-struct vertex_interactions
-{
-    int output_index;
-    voxel_point output_coord;
-
-    vector<int> input_indexes;
-    vector<voxel_point> input_coords;
-};
-
-struct interaction
-{
-    int input_subdomain;
-    int output_subdomain;
-
-    int input_size;
-    int output_size;
-    
-    vector<vertex_interactions> vertexes_io;
-};
-
-struct vertex_interactions_request
-{
-    int output_index;
-    int vertex_index;
-    int input_subdomain;
-
-    const vector<int> & input;
-};
-
-struct interaction_request
-{
-    int input_subdomain;
-    int output_subdomain;
-
-    const vector<int> & input;
-    const vector<int> & output;
-};
 
 
 

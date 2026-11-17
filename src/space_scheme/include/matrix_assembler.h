@@ -6,7 +6,6 @@
 #include "common.h"
 #include "problem_conditions.h"
 #include "space_scheme.h"
-#include <sstream>
 
 typedef vector<vector<spmat>> block_matrix;
 
@@ -15,7 +14,7 @@ struct subdomain_system
     spmat ii;
     spmat ib;
     spmat bb;
-    spmat global_boundary;
+    spmat gb_subd;
 };
 
 class matrix_assembler
@@ -38,6 +37,8 @@ class matrix_assembler
     void build_subdomain_systems();
 
     void build_spmat_from_interaction(const interaction &, spmat &);
+    template<typename array_type>
+    void fill_trp_from_interaction(const interaction &, array_type &);
 
     bool ability_to_import();
     void import_matrixes();

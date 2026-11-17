@@ -21,4 +21,6 @@ struct vertex
     vertex & string_import(string);
 };
 
+
+
 #endif

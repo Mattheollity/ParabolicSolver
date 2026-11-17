@@ -1,7 +1,6 @@
 #include "matrix_assembler.h"
-#include "common.h"
-#include "grid.h"
-#include <filesystem>
+#include "file_io.h"
+#include "problem_conditions.h"
 
 matrix_assembler::matrix_assembler(case_config cc_) : cc(cc_)
 {
@@ -17,6 +16,8 @@ void matrix_assembler::create_from_grid()
     build_permutation();
     build_subdomain_systems();
     build_base_boundary_system();
+
+    export_matrixes();
 
     delete g;
 }
@@ -43,6 +44,18 @@ void matrix_assembler::build_subdomain_systems()
         build_spmat_from_interaction(subd_intr[0], subdomain_systems[i].ii);
         build_spmat_from_interaction(subd_intr[1], subdomain_systems[i].ib);
         build_spmat_from_interaction(subd_intr[2], subdomain_systems[i].bb);
+        build_spmat_from_interaction(subd_intr[3], subdomain_systems[i].gb_subd);
+    }
+}
+
+void matrix_assembler::build_base_boundary_system()
+{
+    for(int i=0;i<subdomain_systems.size();i++)
+    for(int j=0;j<subdomain_systems.size();j++)
+    if(i!=j)
+    {
+        interaction ij_intr = g->get_interaction_between(i, j)[0];
+        fill_trp_from_interaction(ij_intr, base_boundary_system);
     }
 }
 
@@ -50,7 +63,13 @@ void matrix_assembler::build_spmat_from_interaction(const interaction & intr, sp
 {
     target = spmat(intr.output_size, intr.input_size);
     vector<triplet> trp;
+    fill_trp_from_interaction(intr, trp);
+    target.setFromTriplets(trp.begin(), trp.end());
+}
 
+template<typename array_type>
+void matrix_assembler::fill_trp_from_interaction(const interaction & intr, array_type & trp)
+{
     for(int i=0;i<intr.output_size;i++)
     for(int j=0;j<intr.vertexes_io[i].input_indexes.size();j++)
     trp.push_back
@@ -77,6 +96,38 @@ bool matrix_assembler::ability_to_import()
     return true;
 
     return false;
+}
+
+void matrix_assembler::import_matrixes()
+{
+    grid_conds gc = load_grid_conds(cc.GRID_DIR+"/used_grid_conds");
+
+    subdomain_systems.resize(gc.subdomains.size());
+
+    #pragma omp parallel for shared(subdomain_systems)
+    for(int i=0;i<subdomain_systems.size();i++)
+    {
+        import_spmat(to_string(i)+"_ii", subdomain_systems[i].ii);
+        import_spmat(to_string(i)+"_ib", subdomain_systems[i].ib);
+        import_spmat(to_string(i)+"_bb", subdomain_systems[i].bb);
+        import_spmat(to_string(i)+"_gb", subdomain_systems[i].gb_subd);
+    }
+}
+
+void matrix_assembler::export_matrixes()
+{
+    fs::copy_file(cc.GRID_DIR+"/grid_conds",cc.SPACE_DIR+"/used_grid_conds");
+
+    export_spmat(cc.SPACE_DIR+"/permutation", permutation);
+
+    #pragma omp parallel for shared(subdomain_systems)
+    for(int i=0;i<subdomain_systems.size();i++)
+    {
+        export_spmat(to_string(i)+"_ii", subdomain_systems[i].ii);
+        export_spmat(to_string(i)+"_ib", subdomain_systems[i].ib);
+        export_spmat(to_string(i)+"_bb", subdomain_systems[i].bb);
+        export_spmat(to_string(i)+"_gb", subdomain_systems[i].gb_subd);
+    }
 }
 
 poisson_system::poisson_system(const grid & g, const approx & appc) :
