@@ -80,7 +80,7 @@ grid_conds load_grid_conds(string grid_file)
     }   
     else throw simple_error("expected sections");
     
-    return grid_conds(bbox, v_bbox.second, subdomains);
+    return grid_conds(dim, bbox, v_bbox.second, subdomains);
 }
 
 time_integr_conds load_tic(string tic_file)

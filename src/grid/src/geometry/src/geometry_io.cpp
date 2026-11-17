@@ -1,6 +1,6 @@
-#include "grid.h"
+#include "geometry.h"
 
-bool grid::import_grid()
+bool geometry::import_grid()
 {
     if(fs::exists(GRID_DIR+"/exp_grid_conds"))
     if(file_equality(GRID_DIR+"/grid_conds", GRID_DIR+"/exp_grid_conds"))
@@ -20,7 +20,7 @@ bool grid::import_grid()
     return false;
 }
 
-bool grid::import_domain()
+bool geometry::import_domain()
 {
     string buf;
     int ibuf;
@@ -59,7 +59,7 @@ bool grid::import_domain()
     return true;
 }
 
-bool grid::import_subdomains()
+bool geometry::import_subdomains()
 {
     for(int i=0; i<subdomains.size(); i++)
     {
@@ -121,14 +121,14 @@ bool grid::import_subdomains()
     return true;
 }
 
-void grid::export_grid() const
+void geometry::export_grid() const
 {
     fs::copy_file(GRID_DIR+"/grid_conds", GRID_DIR+"/exp_grid_conds", fs::copy_options::overwrite_existing);
     export_domain();
     export_subdomains();
 }
 
-void grid::export_domain() const
+void geometry::export_domain() const
 {
     std::ofstream file(GRID_DIR+"/vertexes");
     file<<"amount "<<vertexes.size()<<endl;
@@ -140,7 +140,7 @@ void grid::export_domain() const
     file2.close();
 }
 
-void grid::export_subdomains() const
+void geometry::export_subdomains() const
 {
     for(subdomain s : subdomains)
     {

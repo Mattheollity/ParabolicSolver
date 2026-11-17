@@ -12,6 +12,7 @@ add_subdirectory(libs/eigen)
 add_subdirectory(libs/Catch2)
 add_subdirectory(libs/eigen-expokit)
 
+add_subdirectory(src/grid/src/geometry)
 add_subdirectory(src/grid)
 add_subdirectory(src/space_scheme)
 add_subdirectory(src/time_scheme)
@@ -24,6 +25,7 @@ add_executable(compt
 
 target_link_libraries(
     compt
+    geometry
     grid
     poisson
     time_scheme

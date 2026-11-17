@@ -1,6 +1,32 @@
-#include "grid.h"
+#include "geometry.h"
 
-void grid::create_grid()
+geometry::geometry(case_config cc_) :
+    GRID_DIR(cc.GRID_DIR)
+{
+    setup_grid_conds();
+    bool succed_import = import_grid();
+    if(!succed_import) create_grid();
+}
+
+void geometry::setup_grid_conds()
+{
+    gc = load_grid_conds(GRID_DIR+"/grid_conds");
+    h.resize(gc.dim);
+    subdomains.resize(gc.subdomains.size());
+
+    csum = vector<int> (gc.dim, 1);
+    for(int d=1;d<gc.dim;d++)
+    csum[d]*=csum[d-1]*gc.N[d-1];
+
+    for(int i=0;i<gc.dim;i++)
+    h[i] = (gc.bbox.second[i] - gc.bbox.first[i])/(gc.N[i]-1);
+
+    int amount = 1;
+    for(int i=0;i<gc.dim;i++) amount*=gc.N[i];
+    vertexes.resize(amount);
+}
+
+void geometry::create_grid()
 {
     cout<<"---------------GRID CREATION--------------"<<endl;
     double t0 = omp_get_wtime();
@@ -14,7 +40,7 @@ void grid::create_grid()
     cout<<"GRID WAS SUCCESSFULLY CREATED with time: "<<omp_get_wtime()-t0<<endl<<endl;
 }
 
-void grid::fill_domain()
+void geometry::fill_domain()
 {
     double t0, t1;
 
@@ -33,7 +59,7 @@ void grid::fill_domain()
     cout<<"End fill_domain with time: "<<t1-t0<<endl;
 }
 
-void grid::find_neighbors_and_axis(vertex & v)
+void geometry::find_neighbors_and_axis(vertex & v)
 {
     int inner_cond = gc.dim*2;
 
@@ -64,7 +90,7 @@ void grid::find_neighbors_and_axis(vertex & v)
     else boundary.push_back(v.index);
 }
 
-int grid::global_index(const voxel_point & voxel_coord)
+int geometry::global_index(const voxel_point & voxel_coord)
 {
     int index=0;
     for(int d=0;d<gc.dim;d++)
@@ -73,16 +99,16 @@ int grid::global_index(const voxel_point & voxel_coord)
     return index;
 }
 
-void grid::setup_subdomains()
+void geometry::setup_subdomains()
 {
     for(int i=0; i<gc.subdomains.size(); i++)
     create_subdomain(i, gc.subdomains[i]);
 
-    find_inner_boundary_at_subdomains();
+    find_inner_and_boundary_at_subdomains();
     assert_all_vertexes_has_subdomain();
 }
 
-void grid::create_subdomain(int i, pair<point, point> bbox_)
+void geometry::create_subdomain(int i, pair<point, point> bbox_)
 {
     double t0 = omp_get_wtime();
     cout<<"Creating subdomains..."<<endl;
@@ -95,7 +121,7 @@ void grid::create_subdomain(int i, pair<point, point> bbox_)
     cout<<"End creating subdomains with time: "<<omp_get_wtime()-t0<<endl<<endl;
 }
 
-void grid::setup_subdomain_N_bbox(subdomain & s, pair<point, point> & bbox_)
+void geometry::setup_subdomain_N_bbox(subdomain & s, pair<point, point> & bbox_)
 {
     point & a = bbox_.first;
     point & b = bbox_.second;
@@ -126,7 +152,7 @@ void grid::setup_subdomain_N_bbox(subdomain & s, pair<point, point> & bbox_)
     s.N_bbox.second=vb;
 }
 
-void grid::mark_subdomains_vertexes(subdomain & s)
+void geometry::mark_subdomains_vertexes(subdomain & s)
 {
     for(dim_iterator di(s.N_bbox); !di.is_overfull(); ++di)
     {
@@ -137,7 +163,7 @@ void grid::mark_subdomains_vertexes(subdomain & s)
     } 
 }
 
-void grid::find_inner_boundary_at_subdomains()
+void geometry::find_inner_and_boundary_at_subdomains()
 {
     int inner_vertex_cond = gc.dim*2;
 
@@ -153,7 +179,7 @@ void grid::find_inner_boundary_at_subdomains()
     }
 }
 
-int grid::amount_neighbors_at_subdomain(const vertex & v) const
+int geometry::amount_neighbors_at_subdomain(const vertex & v) const
 {
     int amount = 0;
     for(auto n : v.neighbors_indexes)
@@ -164,7 +190,7 @@ int grid::amount_neighbors_at_subdomain(const vertex & v) const
     return amount;
 }
 
-void grid::assert_all_vertexes_has_subdomain() const
+void geometry::assert_all_vertexes_has_subdomain() const
 {
     int inner_vertex_cond = 2*gc.dim;
     #pragma omp parallel for firstprivate(vertexes, subdomains, inner_vertex_cond)
@@ -174,4 +200,64 @@ void grid::assert_all_vertexes_has_subdomain() const
         &&
         vertexes[i].subdomain==-1
     ) throw("Any vertex must has subdomain or be boundary vertex");
+}
+
+void geometry::build_permutation_vector()
+{
+    double t1 = omp_get_wtime();
+    permutation.resize(inner.size());
+    vector<int> paddings (subdomains.size()+1);
+
+    paddings[0] = 0;
+    for(int i=0; i<subdomains.size(); i++)
+    paddings[i+1] = paddings[i] + subdomains[i].boundary.size() + subdomains[i].inner.size();
+
+    omp_set_nested(1);
+    #pragma omp parallel for shared(paddings, permutation, subdomains, inner)
+    for(int i=0; i<subdomains.size(); i++)
+    {
+        const subdomain & s = subdomains[i];
+
+        #pragma omp parallel for shared(paddings, permutation, subdomains, inner, i)
+        for(int j=0; j<s.inner.size(); j++)
+        permutation[paddings[i]+j] = std::lower_bound
+        (
+            inner.begin(),
+            inner.end(),
+            s.inner[j]
+        ) - inner.begin();
+
+        #pragma omp parallel for shared(paddings, permutation, subdomains, inner, i)
+        for(int j=0; j<s.boundary.size(); j++)
+        permutation[paddings[i] + s.inner.size() + j] = std::lower_bound
+        (
+            inner.begin(),
+            inner.end(),
+            s.boundary[j]
+        ) - inner.begin();
+    }
+    omp_set_nested(0);
+    double t2 = omp_get_wtime();
+
+    cout<<"Permutation`s indices was created with time: "<<t2-t1<<endl<<endl;
+}
+
+
+
+point geometry::to_real_coord(voxel_point vp) const
+{
+    point p(gc.dim);
+    for(int i=0; i<gc.dim; i++)
+    p[i] = vp[i]*h[i]+gc.bbox.first[i];
+
+    return p;
+}
+
+voxel_point geometry::to_voxel_coord(point p) const
+{
+    voxel_point vp(gc.dim);
+    for(int i=0; i<gc.dim; i++)
+    vp[i] = (p[i]-gc.bbox.first[i])/h[i];
+
+    return vp;
 }
