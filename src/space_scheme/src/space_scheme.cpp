@@ -2,7 +2,7 @@
 #include "common.h"
 #include <fstream>
 
-double space_scheme::operator()(const voxel_point & base, const voxel_point & s_point)
+double space_scheme::operator()(const space_scheme_request &)
 {
     throw simple_error("can`t use operator() for space_scheme original class");
 }
@@ -12,10 +12,17 @@ anisotrop_laplace::anisotrop_laplace(string SCHEME_DIR)
     std::ifstream file(SCHEME_DIR+"/space_scheme");
 
     string buf;
+    int ibuf;
     
     file>>buf;
     file>>buf;
-    if(buf!="")
+
+    if(buf!="dim") throw simple_error("Expected dim at space_scheme file");
+    file>>ibuf;
+    k.resize(ibuf);
+
+    if(buf!="anisotrop_coeffs") throw simple_error("Expected anisotrop_coeffs at space_scheme file");
+    for(int i=0;i<k.size();i++) file>>k[i];
 
     file.close();
 }

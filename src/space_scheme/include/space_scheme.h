@@ -6,9 +6,16 @@
 #include "problem_conditions.h"
 #include "file_io.h"
 
+struct space_scheme_request
+{
+    const voxel_point & base;
+    const voxel_point & s_point;
+    const voxel_point & h;
+};
+
 struct space_scheme
 {
-    virtual double operator()(const voxel_point & base, const voxel_point & s_point);
+    virtual double operator()(const space_scheme_request &);
 };
 
 space_scheme load_space_scheme(string SCHEME_DIR);
@@ -16,8 +23,7 @@ space_scheme load_space_scheme(string SCHEME_DIR);
 struct anisotrop_laplace : space_scheme
 {
     vector<double> k;
-    vector<double> h;
-    virtual double operator()(const voxel_point & base, const voxel_point & s_point) override;
+    virtual double operator()(const space_scheme_request &) override;
 
     anisotrop_laplace(string SPACE_APPROX_DIR);
 };

@@ -1,4 +1,5 @@
 #include "geometry.h"
+#include "problem_conditions.h"
 
 geometry::geometry(case_config cc_) :
     GRID_DIR(cc.GRID_DIR)
@@ -50,7 +51,7 @@ void geometry::fill_domain()
     int i=0;
     for(dim_iterator di({voxel_point(gc.dim,0), gc.N}); !di.is_overfull(); ++di)
     {
-        vertexes[i] = {i, di.voxel_coord};
+        vertexes[i] = {i, di.voxel_coord, to_real_coord(di.voxel_coord)};
         find_neighbors_and_axis(vertexes[i]);
         i++;
     }
@@ -251,6 +252,15 @@ point geometry::to_real_coord(voxel_point vp) const
     p[i] = vp[i]*h[i]+gc.bbox.first[i];
 
     return p;
+}
+
+vector<point> geometry::to_real_coord(vector<voxel_point> vec_vp) const
+{
+    vector<point> vec_p(vec_vp.size());
+    for(int i=0;i<vec_p.size();i++)
+    vec_p[i]=to_real_coord(vec_vp[i]);
+
+    return vec_p;
 }
 
 voxel_point geometry::to_voxel_coord(point p) const

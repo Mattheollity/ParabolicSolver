@@ -1,9 +1,10 @@
 #include "vertex.h"
 
-vertex::vertex(int index_, voxel_point vp) :
+vertex::vertex(int index_, voxel_point vp, point p) :
     index(index_),
     dim(vp.size()),
     voxel_coord(vp),
+    real_coord(p),
     subdomain(-1)
 {};
 
@@ -17,6 +18,7 @@ vertex & vertex::string_import(string str)
     ss>>subdomain;
 
     for(int i=0;i<dim;i++) ss>>voxel_coord[i];
+    for(int i=0;i<dim;i++) ss>>real_coord[i];
 
     ss>>neigbors_size;
     neighbors_indexes.resize(neigbors_size);
@@ -37,6 +39,7 @@ string vertex::string_export() const
     ss<<subdomain<<" ";
 
     for(int i=0;i<dim;i++) ss<<voxel_coord[i]<<" ";
+    for(int i=0;i<dim;i++) ss<<real_coord[i]<<" ";
     
     ss<<neigbors_size<<" ";
     for(int i=0;i<neigbors_size;i++) ss<<neighbors_indexes[i]<<" ";

@@ -10,12 +10,13 @@ struct vertex
     int index;
     int subdomain;
     voxel_point voxel_coord;
+    point real_coord;
 
     vector<int> neighbors_indexes;
     vector<int> neighbors_dims;
 
     vertex() {};
-    vertex(int index_, voxel_point vp);
+    vertex(int index_, voxel_point vp, point p);
 
     string string_export() const;
     vertex & string_import(string);

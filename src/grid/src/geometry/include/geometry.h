@@ -62,6 +62,7 @@ class geometry
 
     int find_local_index(int i, const vector<int> &) const;
     point to_real_coord(voxel_point) const;
+    vector<point> to_real_coord(vector<voxel_point>) const;
     voxel_point to_voxel_coord(point) const;
 
     const vector<vertex> & get_vertexes() const {return vertexes;}

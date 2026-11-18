@@ -114,6 +114,9 @@ vertex_interaction grid::create_vertex_interactions(const vertex_interaction_req
     for(int i : input_vertex_indexes)
     vio.input_coords.push_back(vertexes[i].voxel_coord);
 
+    for(int i : input_vertex_indexes)
+    vio.input_real_coords.push_back(vertexes[i].real_coord);
+
     return vio;
 }
 
@@ -170,10 +173,12 @@ void grid::fill_bvio(vector<vertex_interaction> & bvio)
 
         auto gin = global_indexes_of_neighbors_for_bi(v.index);
         auto gcn = global_coords_of_neighbors_for_bi(gin);
+        auto grcn = g->to_real_coord(gcn);
         auto lin = local_indexes_of_neighbors_for_bi(gin, subdb_csum);        
 
         bvi.input_indexes.insert(bvi.input_indexes.end(), lin.begin(), lin.end());
         bvi.input_coords.insert(bvi.input_coords.end(), gcn.begin(), gcn.end());
+        bvi.input_real_coords.insert(bvi.input_real_coords.end(), grcn.begin(), grcn.end());
     }
 }
 

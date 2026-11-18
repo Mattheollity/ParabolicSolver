@@ -1,13 +1,16 @@
 #include "common.h"
 #include "problem_conditions.h"
+#include "vertex.h"
 
 struct vertex_interaction
 {
     int output_index;
     voxel_point output_coord;
+    point output_real_coord;
 
     vector<int> input_indexes;
     vector<voxel_point> input_coords;
+    vector<point> input_real_coords;
 };
 
 struct vertex_interaction_request
