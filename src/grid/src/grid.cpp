@@ -231,3 +231,14 @@ grid::~grid()
 {
     delete g;
 }
+
+
+point compute_abs_h(const point & a, const point & b)
+{
+    point h(a);
+
+    for(int d=0;d<h.size();d++)
+    h[d]=std::abs(a[d]-b[d]);
+
+    return h;
+}

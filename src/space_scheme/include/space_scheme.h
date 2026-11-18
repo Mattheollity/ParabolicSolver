@@ -3,6 +3,7 @@
 
 #include "common.h"
 
+#include "grid.h"
 #include "problem_conditions.h"
 #include "file_io.h"
 
@@ -10,8 +11,10 @@ struct space_scheme_request
 {
     const voxel_point & base;
     const voxel_point & s_point;
-    const voxel_point & h;
+    const point h;
 };
+
+space_scheme_request generate_space_scheme_request(int i, int j, const interaction &);
 
 struct space_scheme
 {

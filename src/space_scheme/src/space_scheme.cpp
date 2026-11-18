@@ -1,6 +1,22 @@
 #include "space_scheme.h"
 #include "common.h"
+#include <cmath>
 #include <fstream>
+#include "grid.h"
+
+space_scheme_request generate_space_scheme_request(int i, int j, const interaction & interact)
+{
+    point h = compute_abs_h(
+        interact.vertexes_io[i].output_real_coord,
+        interact.vertexes_io[i].input_real_coords[j]
+    );
+
+    return {
+        interact.vertexes_io[i].output_coord,
+        interact.vertexes_io[i].input_coords[j],
+        h
+    };
+}
 
 double space_scheme::operator()(const space_scheme_request &)
 {
@@ -25,6 +41,30 @@ anisotrop_laplace::anisotrop_laplace(string SCHEME_DIR)
     for(int i=0;i<k.size();i++) file>>k[i];
 
     file.close();
+}
+
+double anisotrop_laplace::operator()(const space_scheme_request & ssr)
+{
+    if(k.size()!=ssr.h.size()) throw simple_error("dimensions are uncompatible");
+
+    double coeff = 0;
+
+    int dim = k.size();
+    auto & h = ssr.h;
+
+    if(ssr.base==ssr.s_point)
+    {
+        for(int d=0;d<dim;d++)
+        coeff -= 2*k[d]/(h[d]*h[d]);
+    }
+    else
+    {
+        for(int d=0;d<dim;d++)
+        if(ssr.base[d]!=ssr.s_point[d])
+        coeff=k[dim]/(std::pow(((ssr.base[d]-ssr.s_point[d])*h[d]),2));
+    }
+
+    return -coeff;
 }
 
 space_scheme load_space_scheme(string SCHEME_DIR)
@@ -53,70 +93,39 @@ double trip_sin(const point p)
 
 double m_pi = M_PI;
 
-vect y0(const grid & gr, vect & v)
-{
-    const vector<vertex> & vtx = gr.get_vertexes();
-    auto inner = gr.get_inner();
-    v = vect(inner.size());
-    for(int i=0;i<inner.size(); i++)
-    v.coeffRef(i)=trip_sin(
-        gr.to_real_coord(vtx[inner[i]].voxel_coord)
-    );
-    return v;
-}
-
-double approx_func(const approx & ap, const vertex & main, const vertex & neighbor)
-{
-    //Задача Дирихле, однородные гру
-    //ut = vec(k)*vec(laplac)u
-
-    if(ap.h.size()==0) throw simple_error("h is empty!");
-    int dim = ap.h.size();
-    if(ap.k.size()!=dim) throw simple_error("k is corrupted");
-
-    double coeff = 0;
-
-    auto & h = ap.h;
-    auto & k = ap.k;
-
-    if(main.i==neighbor.i)
-    {
-        for(int d=0;d<dim;d++)
-        coeff -= 2*k[d]/(h[d]*h[d]);
-    }
-    
-    else
-    {
-        for(auto np : main.neighbors)
-        if(np.first==neighbor.i)
-        coeff=k[np.second]/(h[np.second]*h[np.second]);
-    }
-
-    return -coeff;
-
-}
+// vect y0(const grid & gr, vect & v)
+// {
+//     const vector<vertex> & vtx = gr.get_vertexes();
+//     auto inner = gr.get_inner();
+//     v = vect(inner.size());
+//     for(int i=0;i<inner.size(); i++)
+//     v.coeffRef(i)=trip_sin(
+//         gr.to_real_coord(vtx[inner[i]].voxel_coord)
+//     );
+//     return v;
+// }
 
 double dirich_boundary_conds(point, double t) {return 0;}
 
-double real_solution(int dim, const point p, double t)
-{
-    double k = 10101;
+// double real_solution(int dim, const point p, double t)
+// {
+//     double k = 10101;
 
-    return exp(-M_PI*M_PI*k*t)*trip_sin(p);
-}
+//     return exp(-M_PI*M_PI*k*t)*trip_sin(p);
+// }
 
-vect get_solution_at_time_step(const grid & g, const time_integr_conds & tic, int N)
-{
-    auto points = g.get_inner_points();
-    double time = tic.time.first+tic.T*N;
+// vect get_solution_at_time_step(const grid & g, const time_integr_conds & tic, int N)
+// {
+//     auto points = g.get_inner_points();
+//     double time = tic.time.first+tic.T*N;
 
-    vect sol(points.size());
+//     vect sol(points.size());
 
-    for(int i=0; i<points.size(); i++)
-    sol.coeffRef(i) = real_solution(g.get_dim(), points[i], time);
+//     for(int i=0; i<points.size(); i++)
+//     sol.coeffRef(i) = real_solution(g.get_dim(), points[i], time);
 
-    return sol;
-}
+//     return sol;
+// }
 
 
 

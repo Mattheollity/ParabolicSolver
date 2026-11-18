@@ -5,6 +5,7 @@
 
 #include "geometry.h"
 #include "interactions.h"
+#include "problem_conditions.h"
 
 struct subdomain_interaction;
 
@@ -12,7 +13,7 @@ class grid;
 struct grid_conds;
 struct subdomain;
 
-
+point compute_abs_h(const point & a, const point & b);
 
 class grid
 {

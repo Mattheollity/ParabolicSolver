@@ -1,5 +1,6 @@
 #include "geometry.h"
 #include "problem_conditions.h"
+#include <cstdlib>
 
 geometry::geometry(case_config cc_) :
     GRID_DIR(cc.GRID_DIR)
@@ -280,4 +281,14 @@ int geometry::find_local_index(int i, const vector<int> & local) const
             local.end(),
             i
         ) - local.begin();
+}
+
+point geometry::compute_abs_h(const point & a, const point & b) const
+{
+    point h(a);
+
+    for(int d=0;d<gc.dim;d++)
+    h[d]=std::abs(a[d]-b[d]);
+
+    return h;
 }

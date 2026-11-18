@@ -64,6 +64,7 @@ class geometry
     point to_real_coord(voxel_point) const;
     vector<point> to_real_coord(vector<voxel_point>) const;
     voxel_point to_voxel_coord(point) const;
+    point compute_abs_h(const point & a, const point & b) const;
 
     const vector<vertex> & get_vertexes() const {return vertexes;}
     const vector<int> & get_inner() const {return inner;}

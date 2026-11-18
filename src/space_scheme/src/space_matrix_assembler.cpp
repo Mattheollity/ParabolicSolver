@@ -72,7 +72,7 @@ void space_matrix_assembler::build_spmat_from_interaction(const interaction & in
     (triplet(
         interact.vertexes_io[i].output_index,
         interact.vertexes_io[i].input_indexes[j],
-        scheme(interact.vertexes_io[i].output_coord, interact.vertexes_io[i].input_coords[j])
+        scheme(generate_space_scheme_request(i, j, interact))
     ));
 
     target.setFromTriplets(trp.begin(), trp.end());
@@ -88,7 +88,7 @@ void space_matrix_assembler::build_base_boundary_system()
     (triplet(
         interact.vertexes_io[i].output_index,
         interact.vertexes_io[i].input_indexes[j],
-        scheme(interact.vertexes_io[i].output_coord, interact.vertexes_io[i].input_coords[j])
+        scheme(generate_space_scheme_request(i, j, interact))
     ));
 }
 
