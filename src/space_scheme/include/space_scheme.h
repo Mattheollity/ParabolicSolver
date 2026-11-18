@@ -17,7 +17,7 @@ struct anisotrop_laplace : space_scheme
 {
     vector<double> k;
     vector<double> h;
-    virtual double operator()(const vector<voxel_point &>) override;
+    virtual double operator()(const voxel_point & base, const voxel_point & s_point) override;
 
     anisotrop_laplace(string SPACE_APPROX_DIR);
 };

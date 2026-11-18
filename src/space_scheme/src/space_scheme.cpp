@@ -1,29 +1,39 @@
 #include "space_scheme.h"
+#include "common.h"
 #include <fstream>
 
-double space_scheme::operator()(const vector<voxel_point &>)
+double space_scheme::operator()(const voxel_point & base, const voxel_point & s_point)
 {
-
+    throw simple_error("can`t use operator() for space_scheme original class");
 }
 
-space_scheme load_space_scheme(string SCHEME_DIR)
+anisotrop_laplace::anisotrop_laplace(string SCHEME_DIR)
 {
-    
-}
-
-anisotrop_laplace::anisotrop_laplace(string SPACE_APPROX_DIR)
-{
-    if(!fs::exists(SPACE_APPROX_DIR+"/space_scheme")) throw simple_error(string("space_scheme ")+" file is not exist");
-    std::ifstream file(SPACE_APPROX_DIR+"/space_scheme");
+    std::ifstream file(SCHEME_DIR+"/space_scheme");
 
     string buf;
     
     file>>buf;
-    if(file)
-    else throw simple_error("expected bbox");
+    file>>buf;
+    if(buf!="")
 
     file.close();
 }
+
+space_scheme load_space_scheme(string SCHEME_DIR)
+{
+    std::ifstream file(SCHEME_DIR+"/space_scheme");
+
+    string buf;
+    file>>buf;
+    if(buf!="scheme_type") throw simple_error("Expected scheme_type at space_scheme file");
+    file>>buf;
+
+    if(buf=="anisotrop_laplace") return anisotrop_laplace(SCHEME_DIR);
+    else throw simple_error("Undefined scheme_type at space_scheme file");
+}
+
+
 
 double trip_sin(const point p)
 {
