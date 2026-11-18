@@ -13,6 +13,7 @@ struct subdomain_system
     spmat ib;
     spmat bb;
     spmat gb_subd;
+    vector<point> gb_real_coord;
 };
 
 class space_matrix_assembler

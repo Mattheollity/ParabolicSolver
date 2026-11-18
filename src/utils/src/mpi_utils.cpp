@@ -1,6 +1,7 @@
 #include "mpi_utils.h"
+#include <mpi.h>
 
-vector<double> serializeSparseMatrixFlat(spmat & target) {
+vector<double> serializeSparseMatrixFlat(const spmat & target) {
     vector<double> buffer;
     buffer.resize(2 + target.nonZeros() * 2 + target.cols());
 
@@ -48,4 +49,19 @@ spmat deserializeSparseMatrixFlat(const std::vector<double>& buffer) {
     }
     target.setFromTriplets(triplets.begin(), triplets.end());
     return target;
+}
+
+void sendMatrix(const spmat & target, int dest, int tag, MPI_Comm comm) {
+    auto buf = serializeSparseMatrixFlat(target);
+    int n = buf.size();
+    MPI_Send(&n, 1, MPI_INT, dest, tag, comm);
+    MPI_Send(buf.data(), n, MPI_DOUBLE, dest, tag + 1, comm);
+}
+
+void recvMatrix(spmat & target, int src, int tag, MPI_Comm comm) {
+    int n = 0;
+    MPI_Recv(&n, 1, MPI_INT, src, tag, comm, MPI_STATUS_IGNORE);
+    std::vector<double> buf(n);
+    MPI_Recv(buf.data(), n, MPI_DOUBLE, src, tag + 1, comm, MPI_STATUS_IGNORE);
+    target = deserializeSparseMatrixFlat(buf);
 }

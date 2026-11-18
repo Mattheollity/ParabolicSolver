@@ -179,6 +179,15 @@ void geometry::find_inner_and_boundary_at_subdomains()
         else
         subd.boundary.push_back(v.index);
     }
+    else
+    {
+        for(int ni : v.neighbors_indexes)
+        if(vertexes[ni].subdomain!=-1)
+        {
+            int s = vertexes[ni].subdomain;
+            subdomains[s].global_boundary.push_back(v.index);
+        }
+    }
 }
 
 int geometry::amount_neighbors_at_subdomain(const vertex & v) const

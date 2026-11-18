@@ -58,6 +58,7 @@ class grid
 
     vector<subdomain_interaction> get_subdomain_interactions() const;
     interaction get_boundaries_interaction() const;
+    vector<vector<point>> get_global_boundaries_points() const;
 
     const vector<int> & get_permutation_vector() const {return g->get_permutation();}
 };

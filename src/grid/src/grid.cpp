@@ -242,3 +242,18 @@ point compute_abs_h(const point & a, const point & b)
 
     return h;
 }
+
+vector<vector<point>> grid::get_global_boundaries_points() const
+{
+    auto & subdomains = g->get_subdomains();
+    auto & vertexes = g->get_vertexes();
+
+    vector<vector<point>> gbp(subdomains.size());
+    for(int i=0;i<gbp.size();i++)
+    {
+        auto gbvc = subdomains[i].global_boundary;
+        vector<point> bp(gbvc.size());
+        for(int j=0;j<bp.size();j++)
+        bp[j] = vertexes[gbvc[j]].real_coord;
+    }
+}

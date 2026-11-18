@@ -80,6 +80,7 @@ struct subdomain
     pair<voxel_point, voxel_point> N_bbox;
     vector<int> inner;
     vector<int> boundary;
+    vector<int> global_boundary;
 
     set<int> neighboring_subdomains;
 };
