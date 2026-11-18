@@ -1,0 +1,51 @@
+#include "mpi_utils.h"
+
+vector<double> serializeSparseMatrixFlat(spmat & target) {
+    vector<double> buffer;
+    buffer.resize(2 + target.nonZeros() * 2 + target.cols());
+
+    buffer[0] = target.rows();
+    buffer[1] = target.cols();
+
+    int position=2;
+    for (int col = 0; col < target.outerSize(); ++col) {
+        int nnz_col = 0;
+
+        int col_pos = position;
+        position++;
+
+        for (Eigen::SparseMatrix<double>::InnerIterator it(target, col); it; ++it) {
+            buffer[position] = it.row();
+            buffer[position+1] = it.value();
+            position+=2;
+            ++nnz_col;
+        }
+
+        buffer[col_pos]=nnz_col;
+    }
+    return buffer;
+}
+
+spmat deserializeSparseMatrixFlat(const std::vector<double>& buffer) {
+    int rows = buffer[0];
+    int cols = buffer[1];
+    spmat target(rows, cols);
+
+    size_t idx = 2;
+    int trp_idx = 0;
+    std::vector<Eigen::Triplet<double>> triplets ((buffer.size()-2-cols)/2);
+
+    for (int col = 0; col < cols; ++col) {
+        int nnz_col = buffer[idx];
+        idx++;
+        for (int k = 0; k < nnz_col; ++k) {
+            int row = buffer[idx];
+            double val = buffer[idx+1];
+            idx+=2;
+            triplets[trp_idx]={row, col, val};
+            trp_idx++;
+        }
+    }
+    target.setFromTriplets(triplets.begin(), triplets.end());
+    return target;
+}
