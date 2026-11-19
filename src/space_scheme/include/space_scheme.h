@@ -16,10 +16,7 @@ struct space_scheme_request
 
 space_scheme_request generate_space_scheme_request(int i, int j, const interaction &);
 
-struct space_scheme
-{
-    virtual double operator()(const space_scheme_request &);
-};
+
 
 space_scheme load_space_scheme(string SCHEME_DIR);
 

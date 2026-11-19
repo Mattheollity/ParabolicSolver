@@ -2,19 +2,12 @@
 #define FILE_IO_
 
 #include "common.h"
-#include "problem_conditions.h"
+#include "config_structures.h"
 #include <string>
 
 namespace fs = std::filesystem;
 
-struct case_config
-{
-    string GRID_DIR;
-    string SPACE_DIR;
-    string TIME_DIR;
-};
-
-grid_conds load_grid_conds(string grid_file);
+пк load_grid_conds(string grid_file);
 time_conds load_time_conds(string TIME_DIR);
 case_conds load_case_conds(string TIME_DIR);
 writter_conds load_writter_conds(string TIME_DIR);

@@ -10,6 +10,8 @@ add_library(
     src/time_scheme.cpp
 )
 target_link_libraries(time_scheme PUBLIC space_scheme eigen-expokit::eexpokit)
+target_link_libraries(time_scheme INTERFACE common)
+target_link_libraries(time_scheme PRIVATE mpi_utils)
 
 target_include_directories(
     time_scheme

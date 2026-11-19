@@ -7,6 +7,7 @@
 #include "problem_conditions.h"
 #include <fstream>
 #include <iomanip>
+#include <mpi_proto.h>
 #include <omp.h>
 #include <ostream>
 #include <string>
@@ -17,6 +18,8 @@ time_scheme::time_scheme(case_config cc_) : cc(cc_)
     load_time_conds(cc.TIME_DIR);
     load_case_conds(cc.TIME_DIR);
     load_writter_conds(cc.TIME_DIR);
+
+    MPI_Init(int *argc, char ***argv)
 }
 
 

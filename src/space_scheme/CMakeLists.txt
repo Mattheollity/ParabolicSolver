@@ -10,19 +10,11 @@ add_library(
     src/space_matrix_assembler.cpp
     src/space_scheme.cpp
 )
-target_link_libraries(space_scheme PUBLIC grid)
+
+target_link_libraries(space_scheme INTERFACE common)
 
 target_include_directories(
     space_scheme
     PUBLIC
     include
 )
-
-
-
-# add_executable(
-#     poisson_test
-#     tests/poisson.cpp
-# )
-# target_link_libraries(poisson_test PUBLIC poisson)
-# target_link_libraries(poisson_test PRIVATE Catch2::Catch2WithMain)
