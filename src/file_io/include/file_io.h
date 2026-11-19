@@ -3,6 +3,7 @@
 
 #include "common.h"
 #include "problem_conditions.h"
+#include <string>
 
 namespace fs = std::filesystem;
 
@@ -14,9 +15,10 @@ struct case_config
 };
 
 grid_conds load_grid_conds(string grid_file);
+time_conds load_time_conds(string TIME_DIR);
+case_conds load_case_conds(string TIME_DIR);
+writter_conds load_writter_conds(string TIME_DIR);
 
-time_integr_conds load_tic(string tic_file);
-approx load_approx_conds(string appr_file);
 
 bool file_equality(string FILE1, string FILE2);
 

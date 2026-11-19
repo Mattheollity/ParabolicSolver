@@ -9,7 +9,7 @@ add_library(
     STATIC
     src/time_scheme.cpp
 )
-target_link_libraries(time_scheme PUBLIC poisson eigen-expokit::eexpokit)
+target_link_libraries(time_scheme PUBLIC space_scheme eigen-expokit::eexpokit)
 
 target_include_directories(
     time_scheme

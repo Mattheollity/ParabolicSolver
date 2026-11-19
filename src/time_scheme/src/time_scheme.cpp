@@ -12,6 +12,19 @@
 #include <string>
 #include <vector>
 
+time_scheme::time_scheme(case_config cc_) : cc(cc_)
+{
+    load_time_conds(cc.TIME_DIR);
+    load_case_conds(cc.TIME_DIR);
+    load_writter_conds(cc.TIME_DIR);
+}
+
+
+
+
+
+
+
 void tsws::expimp_matrix_manipulation(spsys & target, const spsys & origin, double coeff)
 {
     #pragma omp parallel for shared(target, origin, coeff)
