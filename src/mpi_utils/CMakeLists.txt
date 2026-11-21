@@ -23,5 +23,5 @@ target_include_directories(
     include
 )
 
-target_link_libraries(mpi_utils INTERFACE common)
+target_link_libraries(mpi_utils PUBLIC common)
 target_link_libraries(mpi_utils PUBLIC MPI::MPI_CXX)

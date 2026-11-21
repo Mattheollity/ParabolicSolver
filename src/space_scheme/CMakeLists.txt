@@ -11,7 +11,8 @@ add_library(
     src/space_scheme.cpp
 )
 
-target_link_libraries(space_scheme INTERFACE common)
+target_link_libraries(space_scheme PUBLIC common)
+target_link_libraries(space_scheme PUBLIC grid)
 
 target_include_directories(
     space_scheme

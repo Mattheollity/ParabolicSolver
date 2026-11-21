@@ -2,10 +2,8 @@
 #define SPACE_SCHEME_
 
 #include "common.h"
-
-#include "grid.h"
-#include "problem_conditions.h"
-#include "file_io.h"
+#include "config_structures.h"
+#include "interactions.h"
 
 struct space_scheme_request
 {
@@ -16,16 +14,12 @@ struct space_scheme_request
 
 space_scheme_request generate_space_scheme_request(int i, int j, const interaction &);
 
-
-
-space_scheme load_space_scheme(string SCHEME_DIR);
-
 struct anisotrop_laplace : space_scheme
 {
     vector<double> k;
-    virtual double operator()(const space_scheme_request &) override;
+    virtual double operator()(const space_scheme_request &) const override;
 
-    anisotrop_laplace(string SPACE_APPROX_DIR);
+    anisotrop_laplace(string CASE_DIR);
 };
 
 

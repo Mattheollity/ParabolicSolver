@@ -1,8 +1,4 @@
 #include "space_scheme.h"
-#include "common.h"
-#include <cmath>
-#include <fstream>
-#include "grid.h"
 
 space_scheme_request generate_space_scheme_request(int i, int j, const interaction & interact)
 {
@@ -66,32 +62,6 @@ double anisotrop_laplace::operator()(const space_scheme_request & ssr)
 
     return -coeff;
 }
-
-space_scheme load_space_scheme(string SCHEME_DIR)
-{
-    std::ifstream file(SCHEME_DIR+"/space_scheme");
-
-    string buf;
-    file>>buf;
-    if(buf!="scheme_type") throw simple_error("Expected scheme_type at space_scheme file");
-    file>>buf;
-
-    if(buf=="anisotrop_laplace") return anisotrop_laplace(SCHEME_DIR);
-    else throw simple_error("Undefined scheme_type at space_scheme file");
-}
-
-
-
-double trip_sin(const point p)
-{
-    double c = 1.0;
-    for(int d=0; d<p.size(); d++)
-    c*=sin(M_PI*p[d]);
-
-    return c;
-}
-
-double m_pi = M_PI;
 
 // vect y0(const grid & gr, vect & v)
 // {

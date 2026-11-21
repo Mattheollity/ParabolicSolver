@@ -2,10 +2,10 @@
 #define GRID_
 
 #include "common.h"
+#include "config_structures.h"
 
 #include "geometry.h"
 #include "interactions.h"
-#include "problem_conditions.h"
 
 struct subdomain_interaction;
 

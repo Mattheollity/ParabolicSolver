@@ -4,8 +4,8 @@
 #include "common.h"
 #include "vertex.h"
 #include "dim_iterator.h"
-#include "problem_conditions.h"
-#include "file_io.h"
+#include "config_structures.h"
+#include <sstream>
 #include <vector>
 
 struct subdomain;
@@ -14,7 +14,7 @@ class geometry
     case_config cc;
     string GRID_DIR;
 
-    grid_conds gc;
+    grid_config gc;
     vector<int> csum;
     vector<double> h;
 
@@ -46,11 +46,10 @@ class geometry
 
 
 
-    bool import_grid();
     bool import_domain();
     bool import_subdomains();
 
-    void export_grid() const;
+    
     void export_domain() const;
     void export_subdomains() const;
 
@@ -72,6 +71,9 @@ class geometry
     const vector<int> & get_permutation() const {return permutation;}
 
     const vector<subdomain> & get_subdomains() const {return subdomains;}
+
+    static geometry import_grid(std::istringstream &);
+    bool export_grid(std::ostringstream &) const;
 };
 
 struct subdomain

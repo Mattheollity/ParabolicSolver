@@ -4,6 +4,8 @@ project(ParabolicSolver_grid CXX)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_STANDARD 17)
 
+add_subdirectory(src/geometry)
+
 add_library(
     grid
     STATIC
@@ -17,4 +19,4 @@ target_include_directories(
 )
 
 target_link_libraries(grid PUBLIC geometry)
-target_link_libraries(grid INTERFACE common)
+target_link_libraries(grid PUBLIC common)

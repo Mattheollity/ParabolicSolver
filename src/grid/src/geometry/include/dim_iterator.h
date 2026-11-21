@@ -2,7 +2,6 @@
 #define DIM_ITERATOR_
 
 #include "common.h"
-#include "problem_conditions.h"
 
 struct dim_iterator
 {

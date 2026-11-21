@@ -2,7 +2,7 @@
 #define VERTEX_
 
 #include "common.h"
-#include "problem_conditions.h"
+#include "config_structures.h"
 
 struct vertex
 {

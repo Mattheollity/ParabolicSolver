@@ -1,156 +1,92 @@
-#include "file_io.h"
-#include "problem_conditions.h"
+#include "basic_io.h"
 
-grid_conds load_grid_conds(string grid_file)
+std::ifstream load_file(string FILE)
 {
-    if(!fs::exists(grid_file)) throw simple_error(grid_file+" file is not exist");
+    if(!fs::exists(FILE))
+    throw simple_error(FILE+" file is not exist");
 
-    std::ifstream file(grid_file);
-
-    bool change = true;
-    string block;
-    
-    int ibuf;
-    double dbuf;
-
-    int dim;
-    pair<point, point> bbox;
-    pair<voxel_point, voxel_point> v_bbox;
-
-    int subd_size;
-    vector<pair<point, point>> subdomains;
-
-    file>>block;
-    if(block=="dim")
-    {   if(file>>ibuf) dim = ibuf;
-        else throw simple_error("can`t set dim");
-    }
-    else throw simple_error("expected dim");
-
-    file>>block;
-    if(block=="bbox")
-    {   
-        bbox.first = point(dim);
-        bbox.second = point(dim);
-
-        for(int i=0;i<dim;i++)
-        file>>bbox.first[i];
-
-        for(int i=0;i<dim;i++)
-        file>>bbox.second[i];
-    }
-    else throw simple_error("expected bbox");
-
-    file>>block;
-    if(block=="vbbox")
-    {
-        v_bbox.first = voxel_point(dim);
-        v_bbox.second = voxel_point(dim);
-        for(int i=0;i<dim;i++)
-        v_bbox.first[i]=0;
-        
-        for(int i=0;i<dim;i++)
-        file>>v_bbox.second[i];
-    }
-    else throw simple_error("expected vbbox");
-
-    file>>block;
-    if(block=="amountsubd") file>>subd_size;
-    else throw simple_error("expected amountsubd");
-
-    subdomains.resize(subd_size);
-
-    file>>block;
-    if(block=="sections")
-    for(int i=0; i<subd_size; i++)
-    {
-        file>>block;
-        if(block!="subd") throw simple_error("expected subd");
-        
-        pair<point, point> bbox_sbd;
-        bbox_sbd.first = point(dim);
-        bbox_sbd.second = point(dim);
-
-        for(int i=0;i<dim;i++)
-        file>>bbox_sbd.first[i];
-
-        for(int i=0;i<dim;i++)
-        file>>bbox_sbd.second[i];
-        subdomains[i]=bbox_sbd;
-    }   
-    else throw simple_error("expected sections");
-    
-    return grid_conds(dim, bbox, v_bbox.second, subdomains);
+    else return std::ifstream(FILE);
 }
 
-time_integr_conds load_tic(string tic_file)
+void expected_section(string FIELD, std::ifstream & file)
 {
-    std::ifstream file(tic_file);
-    double start_time;
-    int N;
-    double T;
-    double theta;
-    double write_each;
-
-    string block;
-    int ibuf;
-    double dbuf;
-
-    file>>block;
-    if(block=="start_time") file>>start_time;
-    else throw simple_error("expected start_time");
-
-    file>>block;
-    if(block=="amount_of_time_steps") file>>N;
-    else throw simple_error("expected amount_of_time_steps");
-
-    file>>block;
-    if(block=="T") file>>T;
-    else throw simple_error("expected T");
-
-    file>>block;
-    if(block=="theta") file>>theta;
-    else throw simple_error("expected theta");
-
-    file>>block;
-    if(block=="write_each") file>>write_each;
-    else throw simple_error("expected write_each");
-
-    time_integr_conds tic(start_time, T, N, theta);
-    tic.write_each = write_each;
-    return tic;
+    string buf;
+    file>>buf;
+    if(buf!=FIELD) simple_error(string("Expected section ")+FIELD);
 }
 
-approx load_approx_conds(string appr_file)
+template<typename DATATYPE>
+DATATYPE load_field(string FIELD, std::ifstream & file)
 {
-    std::ifstream file(appr_file);
-    string block;
+    DATATYPE dtbuf;
+    string buf;
+    file>>buf;
+    if(buf!=FIELD) simple_error(string("Expected field ")+FIELD);
+    file>>dtbuf;
+    return dtbuf; 
+}
 
-    int dim;
-    file>>block;
-    if(block=="dim")
-    {
-        file>>dim;
-    }
-    else throw simple_error("expected dim");
-
-    vector<double> k (dim);
-
-    
+int load_int(string FIELD, std::ifstream & file)
+{
     int ibuf;
-    double dbuf; 
+    string buf;
+    file>>buf;
+    if(buf!=FIELD) simple_error(string("Expected int field ")+FIELD);
+    file>>ibuf;
+    return ibuf;
+}
+
+bool load_bool(string FIELD, std::ifstream & file)
+{
+    bool bbuf;
+    string buf;
+    file>>buf;
+    if(buf!=FIELD) simple_error(string("Expected bool field ")+FIELD);
+    file>>bbuf;
+    return bbuf;
+}
+
+string load_string(string FIELD, std::ifstream & file)
+{
+    string buf;
+    file>>buf;
+    if(buf!=FIELD) simple_error(string("Expected string field ")+FIELD);
+    file>>buf;
+    return buf;
+}
+
+template<typename DATATYPE>
+vector<DATATYPE> load_vector(string FIELD, int amount, std::ifstream & file)
+{
+    vector<DATATYPE> vbuf;
+    string buf;
+    int ibuf;
+    file>>buf;
+    if(buf!=FIELD) simple_error(string("Expected vector field ")+FIELD+"with "+to_string(amount)+" elements");
+    vbuf.resize(amount);
+    for(int i=0;i<amount;i++)
+    file>>vbuf[i];
     
-    file>>block;
-    if(block=="k")
-    {
-        for(int i=0; i<k.size(); i++)
-        file>>k[i];
-    }
-    else throw simple_error("expected k");
+    return vbuf;
+}
+
+template<typename DATATYPE>
+pair<vector<DATATYPE>, vector<DATATYPE>> load_pair_of_vectors(string FIELD, int amount, std::ifstream & file)
+{
+    vector<DATATYPE> vbuf1;
+    vector<DATATYPE> vbuf2;
+    string buf;
+    int ibuf;
+    file>>buf;
+    if(buf!=FIELD) simple_error(string("Expected pair of vectors field ")+FIELD+"with "+to_string(amount)+" elements each");
+    vbuf1.resize(amount);
+    vbuf2.resize(amount);
+    for(int i=0;i<amount;i++)
+    file>>vbuf1[i];
+    for(int i=0;i<amount;i++)
+    file>>vbuf2[i];
     
-    approx appr;
-    appr.k = k;
-    return appr;
+    return {vbuf1, vbuf2};
 }
 
 bool file_equality(string FILE1, string FILE2) {

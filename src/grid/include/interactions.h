@@ -1,6 +1,5 @@
 #include "common.h"
-#include "problem_conditions.h"
-#include "vertex.h"
+#include "config_structures.h"
 
 struct vertex_interaction
 {
