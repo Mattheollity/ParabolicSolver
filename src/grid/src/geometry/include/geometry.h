@@ -2,19 +2,18 @@
 #define GEOMETRY_
 
 #include "common.h"
+#include "config_structures.h"
+
 #include "vertex.h"
 #include "dim_iterator.h"
-#include "config_structures.h"
-#include <sstream>
-#include <vector>
+
 
 struct subdomain;
+class geometry_io;
 class geometry
 {
-    case_config cc;
-    string GRID_DIR;
+    friend geometry_io;
 
-    grid_config gc;
     vector<int> csum;
     vector<double> h;
 
@@ -27,9 +26,9 @@ class geometry
 
 
 
-    void setup_grid_conds();
+    void setup_geometry();
 
-    void create_grid();
+    void create_geometry();
     void fill_domain();
     void find_neighbors_and_axis(vertex &);
     int global_index(const voxel_point &);
@@ -46,18 +45,10 @@ class geometry
 
 
 
-    bool import_domain();
-    bool import_subdomains();
-
-    
-    void export_domain() const;
-    void export_subdomains() const;
-
-
-
     public:
 
-    geometry(case_config cc_);
+    geometry(const grid_config &);
+    const grid_config & gc;
 
     int find_local_index(int i, const vector<int> &) const;
     point to_real_coord(voxel_point) const;
@@ -68,12 +59,10 @@ class geometry
     const vector<vertex> & get_vertexes() const {return vertexes;}
     const vector<int> & get_inner() const {return inner;}
     const vector<int> & get_boundary() const {return boundary;}
+    vector<vector<point>> get_global_boundaries_points() const;
     const vector<int> & get_permutation() const {return permutation;}
 
     const vector<subdomain> & get_subdomains() const {return subdomains;}
-
-    static geometry import_grid(std::istringstream &);
-    bool export_grid(std::ostringstream &) const;
 };
 
 struct subdomain
@@ -83,8 +72,6 @@ struct subdomain
     vector<int> inner;
     vector<int> boundary;
     vector<int> global_boundary;
-
-    set<int> neighboring_subdomains;
 };
 
 #endif

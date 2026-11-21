@@ -12,6 +12,7 @@ add_library(file_io
     src/basic_io.cpp
     src/configs_io.cpp
     src/eigen_io.cpp
+    src/geometry_io.cpp
 )
 
 target_include_directories(file_io PUBLIC include)

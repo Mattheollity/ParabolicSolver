@@ -2,7 +2,7 @@
 #define MATRIX_ASSEMBLER_
 
 #include "common.h"
-#include "config_structures.h"
+#include "config_structures_ss.h"
 #include "space_scheme.h"
 #include <sstream>
 

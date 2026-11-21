@@ -7,9 +7,10 @@ set(CMAKE_CXX_STANDARD 17)
 add_library(
     geometry
     STATIC
-    src/vertex.cpp
-    src/dim_iterator.cpp
-    src/geometry_io.cpp
+    src/base_geometry/vertex.cpp
+    src/base_geometry/dim_iterator.cpp
+    src/geometry_creation/domain_geometry_creation.cpp
+    src/geometry_creation/subdomain_creation.cpp
     src/geometry.cpp
 )
 

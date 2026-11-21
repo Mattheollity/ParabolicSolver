@@ -1,18 +1,14 @@
 #include "geometry.h"
-#include "problem_conditions.h"
-#include <cstdlib>
 
-geometry::geometry(case_config cc_) :
-    GRID_DIR(cc.GRID_DIR)
+geometry::geometry(const grid_config & gc_) :
+    gc(gc_)
 {
-    setup_grid_conds();
-    bool succed_import = import_grid();
-    if(!succed_import) create_grid();
+    setup_geometry();
+    if(!gc.try_to_import) create_geometry();
 }
 
-void geometry::setup_grid_conds()
+void geometry::setup_geometry()
 {
-    gc = load_grid_conds(GRID_DIR+"/grid_conds");
     h.resize(gc.dim);
     subdomains.resize(gc.subdomains.size());
 
@@ -26,191 +22,6 @@ void geometry::setup_grid_conds()
     int amount = 1;
     for(int i=0;i<gc.dim;i++) amount*=gc.N[i];
     vertexes.resize(amount);
-}
-
-void geometry::create_grid()
-{
-    cout<<"---------------GRID CREATION--------------"<<endl;
-    double t0 = omp_get_wtime();
-
-    fill_domain();
-    setup_subdomains();
-    build_permutation_vector();
-
-    export_grid();
-
-    cout<<"GRID WAS SUCCESSFULLY CREATED with time: "<<omp_get_wtime()-t0<<endl<<endl;
-}
-
-void geometry::fill_domain()
-{
-    double t0, t1;
-
-    t0 = omp_get_wtime();
-    cout<<"Start fill_domain"<<endl;
-
-    int i=0;
-    for(dim_iterator di({voxel_point(gc.dim,0), gc.N}); !di.is_overfull(); ++di)
-    {
-        vertexes[i] = {i, di.voxel_coord, to_real_coord(di.voxel_coord)};
-        find_neighbors_and_axis(vertexes[i]);
-        i++;
-    }
-
-    t1 = omp_get_wtime();
-    cout<<"End fill_domain with time: "<<t1-t0<<endl;
-}
-
-void geometry::find_neighbors_and_axis(vertex & v)
-{
-    int inner_cond = gc.dim*2;
-
-    auto & vc = v.voxel_coord;
-    vector<int> neighbors;
-    vector<int> neighbor_axis;
-
-    for(int d=0;d<gc.dim;d++)
-    if(vc[d]+1<gc.N[d])
-    {
-        auto foo = vc;
-        foo[d]+=1;
-        neighbors.push_back(global_index(foo));
-        neighbor_axis.push_back(d+1);
-    }
-    for(int d=0;d<gc.dim;d++)
-    if (vc[d]-1>=0)
-    {
-        auto foo = vc;
-        foo[d]-=1;
-        neighbors.push_back(global_index(foo));
-        neighbor_axis.push_back(-d-1);
-    }
-
-    v.neighbors_indexes=neighbors;
-    v.neighbors_dims=neighbor_axis;
-    if(neighbors.size()==inner_cond) inner.push_back(v.index);
-    else boundary.push_back(v.index);
-}
-
-int geometry::global_index(const voxel_point & voxel_coord)
-{
-    int index=0;
-    for(int d=0;d<gc.dim;d++)
-    index+=csum[d]*voxel_coord[d];
-
-    return index;
-}
-
-void geometry::setup_subdomains()
-{
-    for(int i=0; i<gc.subdomains.size(); i++)
-    create_subdomain(i, gc.subdomains[i]);
-
-    find_inner_and_boundary_at_subdomains();
-    assert_all_vertexes_has_subdomain();
-}
-
-void geometry::create_subdomain(int i, pair<point, point> bbox_)
-{
-    double t0 = omp_get_wtime();
-    cout<<"Creating subdomains..."<<endl;
-
-    subdomains[i] = subdomain();
-    subdomains[i].index = i;
-    setup_subdomain_N_bbox(subdomains[i], bbox_);
-    mark_subdomains_vertexes(subdomains[i]);
-
-    cout<<"End creating subdomains with time: "<<omp_get_wtime()-t0<<endl<<endl;
-}
-
-void geometry::setup_subdomain_N_bbox(subdomain & s, pair<point, point> & bbox_)
-{
-    point & a = bbox_.first;
-    point & b = bbox_.second;
-
-    voxel_point va(gc.dim);
-    voxel_point vb(gc.dim);
-
-    for(unsigned d=0;d<gc.dim;d++)
-    {
-        if(a[d]<gc.bbox.first[d]) a[d]=gc.bbox.first[d];
-        if(b[d]>gc.bbox.second[d]) b[d]=gc.bbox.second[d];
-
-        double eps = h[d]/2;
-
-        int A = (a[d]-gc.bbox.first[d])/h[d];
-        if( a[d] - A*h[d] < eps) va[d] = A;
-        else va[d] = A+1;
-
-        int B = (b[d]-gc.bbox.first[d])/h[d];
-        if( b[d] - B*h[d] < eps) vb[d] = B;
-        else vb[d] = B+1;
-
-        if(va[d]==0) va[d]+=1;
-        if(vb[d]==gc.N[d]) vb[d]-=1;
-    }
-
-    s.N_bbox.first=va;
-    s.N_bbox.second=vb;
-}
-
-void geometry::mark_subdomains_vertexes(subdomain & s)
-{
-    for(dim_iterator di(s.N_bbox); !di.is_overfull(); ++di)
-    {
-        vertex & v = vertexes[global_index(di.voxel_coord)];
-
-        if(v.subdomain!=-1) throw simple_error("SUBDOMAINS CAN`T HAVE COMMON VERTEXES");
-        v.subdomain = s.index;
-    } 
-}
-
-void geometry::find_inner_and_boundary_at_subdomains()
-{
-    int inner_vertex_cond = gc.dim*2;
-
-    for(auto v : vertexes)
-    if(v.subdomain!=-1)
-    {
-        subdomain & subd = subdomains[v.subdomain];
-
-        if(inner_vertex_cond == amount_neighbors_at_subdomain(v))
-        subd.inner.push_back(v.index);
-        else
-        subd.boundary.push_back(v.index);
-    }
-    else
-    {
-        for(int ni : v.neighbors_indexes)
-        if(vertexes[ni].subdomain!=-1)
-        {
-            int s = vertexes[ni].subdomain;
-            subdomains[s].global_boundary.push_back(v.index);
-        }
-    }
-}
-
-int geometry::amount_neighbors_at_subdomain(const vertex & v) const
-{
-    int amount = 0;
-    for(auto n : v.neighbors_indexes)
-    {
-        auto nv = vertexes[n];
-        if(nv.subdomain==v.subdomain) amount++;
-    }
-    return amount;
-}
-
-void geometry::assert_all_vertexes_has_subdomain() const
-{
-    int inner_vertex_cond = 2*gc.dim;
-    #pragma omp parallel for firstprivate(vertexes, subdomains, inner_vertex_cond)
-    for(int i=0; i<vertexes.size(); i++)
-    if(
-        vertexes[i].neighbors_indexes.size()==inner_vertex_cond
-        &&
-        vertexes[i].subdomain==-1
-    ) throw("Any vertex must has subdomain or be boundary vertex");
 }
 
 void geometry::build_permutation_vector()
@@ -300,4 +111,19 @@ point geometry::compute_abs_h(const point & a, const point & b) const
     h[d]=std::abs(a[d]-b[d]);
 
     return h;
+}
+
+vector<vector<point>> geometry::get_global_boundaries_points() const
+{
+    vector<vector<point>> global_boundary_points(subdomains.size());
+    for(int i=0;i<global_boundary_points.size();i++)
+    {
+        auto gb_vector_coords = subdomains[i].global_boundary;
+        vector<point> gb_vector_points(gb_vector_coords.size());
+        for(int j=0;j<gb_vector_points.size();j++)
+        gb_vector_points[j] = vertexes[gb_vector_coords[j]].real_coord;
+        global_boundary_points[i] = gb_vector_points;
+    }
+
+    return global_boundary_points;
 }

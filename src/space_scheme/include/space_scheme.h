@@ -2,17 +2,18 @@
 #define SPACE_SCHEME_
 
 #include "common.h"
-#include "config_structures.h"
+#include "config_structures_ss.h"
 #include "interactions.h"
 
 struct space_scheme_request
 {
     const voxel_point & base;
     const voxel_point & s_point;
-    const point h;
+    point h;
+    point compute_abs_h(const point & a, const point & b);
 };
 
-space_scheme_request generate_space_scheme_request(int i, int j, const interaction &);
+space_scheme_request ss_request(int i, int j, const interaction &);
 
 struct anisotrop_laplace : space_scheme
 {

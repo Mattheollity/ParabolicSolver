@@ -2,7 +2,6 @@
 #define VERTEX_
 
 #include "common.h"
-#include "config_structures.h"
 
 struct vertex
 {
@@ -17,6 +16,7 @@ struct vertex
 
     vertex() {};
     vertex(int index_, voxel_point vp, point p);
+    vertex(string s) {string_import(s);}
 
     string string_export() const;
     vertex & string_import(string);

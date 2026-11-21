@@ -47,16 +47,10 @@ grid_config load_grid(string CASE_DIR)
 {
     string grid_path = CASE_DIR+"grid";
     auto file= load_file(grid_path);
-
-    grid_config gc = {
-        0,
-        {{},{}},
-        {},
-        {},
-        false
-    };
+    grid_config gc;
 
     gc.try_to_import = load_bool("try_to_import", file);
+    gc.pass_creationg = load_bool("pass_creation", file);
     gc.dim = load_int("dim", file);
     gc.bbox = load_pair_of_vectors<double>("bbox", gc.dim, file);
     gc.N = load_vector<int>("N", gc.dim, file);

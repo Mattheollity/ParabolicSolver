@@ -1,9 +1,4 @@
 #include "space_matrix_assembler.h"
-#include "file_io.h"
-#include "grid.h"
-#include "problem_conditions.h"
-#include "space_scheme.h"
-#include <string>
 
 space_matrix_assembler::space_matrix_assembler(case_config cc_) :
     cc(cc_)

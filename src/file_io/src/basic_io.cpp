@@ -5,7 +5,7 @@ std::ifstream load_file(string FILE)
     if(!fs::exists(FILE))
     throw simple_error(FILE+" file is not exist");
 
-    else return std::ifstream(FILE);
+    return std::ifstream(FILE);
 }
 
 void expected_section(string FIELD, std::ifstream & file)
@@ -87,6 +87,34 @@ pair<vector<DATATYPE>, vector<DATATYPE>> load_pair_of_vectors(string FIELD, int 
     file>>vbuf2[i];
     
     return {vbuf1, vbuf2};
+}
+
+template<typename DATATYPE>
+void build_vector(string FIELD, vector<DATATYPE> & v, std::ifstream & file)
+{
+    expected_section(FIELD, file);
+
+    int amount = load_int("amount", file);
+    v.resize(amount);
+
+    for(int i=0;i<amount;i++)
+    file>>v[i];
+}
+
+template<typename DATATYPE>
+void build_vector_from_strings(string FIELD, vector<DATATYPE> & v, std::ifstream & file)
+{
+    expected_section(FIELD, file);
+
+    string s;
+    int amount = load_int("amount", file);
+    v.resize(amount);
+
+    for(int i=0;i<amount;i++)
+    {
+        getline(file, s);
+        v[i] = DATATYPE(s);
+    }
 }
 
 bool file_equality(string FILE1, string FILE2) {
