@@ -22,7 +22,11 @@ space_scheme_config load_space_scheme(string CASE_DIR)
     string scheme_type = load_string("scheme_type", file);
 
     if(scheme_type=="anisotrop_laplace")
-    ssc.scheme = std::make_unique<anisotrop_laplace>(scheme_path);
+    {
+        unique_ptr<anisotrop_laplace> scheme;
+        build_anisotrop_laplace(scheme, file);
+        ssc.scheme = std::move(scheme);
+    }
     else throw simple_error(string("undefined scheme_type ")+scheme_type);
 
     return ssc;
@@ -74,13 +78,14 @@ zero_boundary_config load_zero_boundary(string CASE_DIR)
 
     zero_boundary_config zbc;
     
-    if(y0=="trip_sin") zbc.y0=dimension_sine;
+    if(y0=="dimension_sine") zbc.y0=dimension_sine;
     else throw simple_error("undefined start_time function");
 
-    if(boundary_type=="dirichlet")
+    if(boundary_type=="const_dirichlet")
     {
-        if(boundary=="zero") zbc.dirichlet=zero_value;
-        else throw simple_error("undefined dirichlet boundary function");
+        unique_ptr<const_dirichlet> cd;
+        build_const_dirichlet(cd, file);
+        zbc.dirichlet_condition=std::move(cd);
     }
     else throw simple_error("undefined boundary type");
 

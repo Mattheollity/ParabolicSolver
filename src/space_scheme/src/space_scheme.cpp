@@ -1,45 +1,16 @@
 #include "space_scheme.h"
 
-space_scheme_request generate_space_scheme_request(int i, int j, const interaction & interact)
+space_scheme_request::space_scheme_request(int i, int j, const interaction & interact) :
+    base(interact.vertexes_io[i].output_coord),
+    sub(interact.vertexes_io[i].input_coords[j])
 {
-    point h = compute_abs_h(
+    h = compute_abs_h(
         interact.vertexes_io[i].output_real_coord,
         interact.vertexes_io[i].input_real_coords[j]
     );
-
-    return {
-        interact.vertexes_io[i].output_coord,
-        interact.vertexes_io[i].input_coords[j],
-        h
-    };
 }
 
-double space_scheme::operator()(const space_scheme_request &)
-{
-    throw simple_error("can`t use operator() for space_scheme original class");
-}
-
-anisotrop_laplace::anisotrop_laplace(string SCHEME_DIR)
-{
-    std::ifstream file(SCHEME_DIR+"/space_scheme");
-
-    string buf;
-    int ibuf;
-    
-    file>>buf;
-    file>>buf;
-
-    if(buf!="dim") throw simple_error("Expected dim at space_scheme file");
-    file>>ibuf;
-    k.resize(ibuf);
-
-    if(buf!="anisotrop_coeffs") throw simple_error("Expected anisotrop_coeffs at space_scheme file");
-    for(int i=0;i<k.size();i++) file>>k[i];
-
-    file.close();
-}
-
-double anisotrop_laplace::operator()(const space_scheme_request & ssr)
+double anisotrop_laplace::operator()(const space_scheme_request & ssr) const
 {
     if(k.size()!=ssr.h.size()) throw simple_error("dimensions are uncompatible");
 
@@ -48,7 +19,7 @@ double anisotrop_laplace::operator()(const space_scheme_request & ssr)
     int dim = k.size();
     auto & h = ssr.h;
 
-    if(ssr.base==ssr.s_point)
+    if(ssr.base==ssr.sub)
     {
         for(int d=0;d<dim;d++)
         coeff -= 2*k[d]/(h[d]*h[d]);
@@ -56,8 +27,8 @@ double anisotrop_laplace::operator()(const space_scheme_request & ssr)
     else
     {
         for(int d=0;d<dim;d++)
-        if(ssr.base[d]!=ssr.s_point[d])
-        coeff=k[dim]/(std::pow(((ssr.base[d]-ssr.s_point[d])*h[d]),2));
+        if(ssr.base[d]!=ssr.sub[d])
+        coeff=k[dim]/(std::pow(((ssr.base[d]-ssr.sub[d])*h[d]),2));
     }
 
     return -coeff;
@@ -74,8 +45,6 @@ double anisotrop_laplace::operator()(const space_scheme_request & ssr)
 //     );
 //     return v;
 // }
-
-double dirich_boundary_conds(point, double t) {return 0;}
 
 // double real_solution(int dim, const point p, double t)
 // {

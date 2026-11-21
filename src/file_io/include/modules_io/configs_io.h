@@ -3,9 +3,8 @@
 
 #include "common.h"
 #include "config_structures.h"
-#include "basic_io.h"
-#include "solutions.h"
-#include "space_scheme.h"
+#include "solutions_io.h"
+#include "space_scheme_io.h"
 
 struct case_config
 {

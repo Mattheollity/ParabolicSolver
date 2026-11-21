@@ -3,11 +3,7 @@
 
 #include "config_structures.h"
 #include "grid.h"
-
-struct space_scheme
-{
-    virtual double operator()(const space_scheme_request &) const;
-};
+#include "space_scheme.h"
 
 struct space_scheme_config
 {

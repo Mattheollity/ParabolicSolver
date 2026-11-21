@@ -1,3 +1,6 @@
+#ifndef INTERACTIONS_
+#define INTERACTIONS_
+
 #include "common.h"
 #include "config_structures.h"
 
@@ -49,3 +52,5 @@ struct subdomain_interaction
     interaction bb;
     interaction global_gb;
 };
+
+#endif

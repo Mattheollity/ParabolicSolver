@@ -9,7 +9,6 @@
 
 class grid
 {
-    const grid_config & gc;
     unique_ptr<geometry> grid_geometry;
     
     vector<subdomain_interaction> subd_intr;
@@ -38,6 +37,8 @@ class grid
 
 
     public:
+
+    const grid_config & gc;
 
     grid(const grid_config &);
 
