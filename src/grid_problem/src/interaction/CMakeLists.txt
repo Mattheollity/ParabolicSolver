@@ -1,23 +1,15 @@
-cmake_minimum_required(VERSION 3.10)
-project(ParabolicSolver_grid CXX)
-
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-set(CMAKE_CXX_STANDARD 17)
-
-add_subdirectory(src/geometry)
+cmake_minimum_required(VERSION 3.20)
 
 add_library(
-    grid
+    interactions
     STATIC
     src/grid.cpp
+    src/boundaries_interaction.cpp
+    src/self_subdomain_interaction.cpp
 )
 
-target_include_directories(
-    grid
-    PUBLIC
-    include
-)
+target_include_directories(interactions PUBLIC include)
 
-target_link_libraries(grid PUBLIC geometry)
-target_link_libraries(grid PUBLIC common)
-target_link_libraries(grid PUBLIC solutions)
+target_link_libraries(interactions PUBLIC common)
+target_link_libraries(interactions PUBLIC geometry)
+target_link_libraries(interactions PUBLIC solutions)

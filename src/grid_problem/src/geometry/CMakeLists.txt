@@ -1,8 +1,4 @@
-cmake_minimum_required(VERSION 3.10)
-project(ParabolicSolver_geometry CXX)
-
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-set(CMAKE_CXX_STANDARD 17)
+cmake_minimum_required(VERSION 3.20)
 
 add_library(
     geometry
@@ -14,10 +10,6 @@ add_library(
     src/geometry.cpp
 )
 
-target_include_directories(
-    geometry
-    PUBLIC
-    include
-)
+target_include_directories(geometry PUBLIC include)
 
 target_link_libraries(geometry PUBLIC common)
