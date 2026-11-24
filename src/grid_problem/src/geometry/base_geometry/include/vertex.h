@@ -5,23 +5,19 @@
 
 struct vertex
 {
-    int dim;
-    int index;
-    int subdomain;
-    voxel_point voxel_coord;
+    int index = -1;
+    int subdomain = -1;
+
     point real_coord;
 
     vector<int> neighbors_indexes;
-    vector<int> neighbors_dims;
 
-    vertex() {};
-    vertex(int index_, voxel_point vp, point p);
+    vertex() = default;
+    vertex(int index_, point p);
     vertex(string s) {string_import(s);}
 
     string string_export() const;
     vertex & string_import(string);
 };
-
-
 
 #endif
