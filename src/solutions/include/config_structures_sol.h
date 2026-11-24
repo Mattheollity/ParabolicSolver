@@ -3,6 +3,7 @@
 
 #include "config_structures.h"
 #include "solutions.h"
+#include "eigen_parts.h"
 
 struct zero_boundary_config
 {

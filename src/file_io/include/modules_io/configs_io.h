@@ -5,6 +5,7 @@
 #include "config_structures.h"
 #include "solutions_io.h"
 #include "space_scheme_io.h"
+#include "time_scheme_io.h"
 
 struct case_config
 {

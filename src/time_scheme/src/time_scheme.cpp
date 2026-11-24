@@ -1,25 +1,31 @@
 #include "time_scheme.h"
-#include "Eigen/src/SparseCholesky/SimplicialCholesky.h"
-#include "Eigen/src/SparseLU/SparseLU.h"
-#include "Eigen/src/SparseQR/SparseQR.h"
-#include "common.h"
-#include "file_io.h"
-#include "problem_conditions.h"
-#include <fstream>
-#include <iomanip>
-#include <mpi_proto.h>
-#include <omp.h>
-#include <ostream>
-#include <string>
-#include <vector>
 
-time_scheme::time_scheme(case_config cc_) : cc(cc_)
+void weighted_time_scheme::build_next_time_step_system(const subdomain_system & ss, subdomain_system & tss) const
 {
-    load_time_conds(cc.TIME_DIR);
-    load_case_conds(cc.TIME_DIR);
-    load_writter_conds(cc.TIME_DIR);
+    spmat iA(ss.ii.rows(), ss.ii.cols());
+    iA.setIdentity();
+    spmat iB(ss.bb.rows(), ss.bb.cols());
+    iB.setIdentity();
 
-    MPI_Init(int *argc, char ***argv)
+    tss.ii = iA + theta*T*ss.ii;
+    tss.bb = iB + theta*T*ss.bb;
+    tss.ib = theta*T*ss.ib;
+    tss.gb_subd = theta*T*ss.gb_subd;
+    tss.gb_real_coord = tss.gb_real_coord;
+}
+
+void weighted_time_scheme::build_current_time_step_system(const subdomain_system & ss, subdomain_system & tss) const
+{
+    spmat iA(ss.ii.rows(), ss.ii.cols());
+    iA.setIdentity();
+    spmat iB(ss.bb.rows(), ss.bb.cols());
+    iB.setIdentity();
+
+    tss.ii = iA - (1.0-theta)*T*ss.ii;
+    tss.bb = iB - (1.0-theta)*T*ss.bb;
+    tss.ib = (1.0-theta)*T*ss.ib;
+    tss.gb_subd = (1.0-theta)*T*ss.gb_subd;
+    tss.gb_real_coord = tss.gb_real_coord;
 }
 
 
@@ -28,18 +34,38 @@ time_scheme::time_scheme(case_config cc_) : cc(cc_)
 
 
 
-void tsws::expimp_matrix_manipulation(spsys & target, const spsys & origin, double coeff)
-{
-    #pragma omp parallel for shared(target, origin, coeff)
-    for(int i=0; i<origin.size(); i++)
-    {
-        for(int j=0; j<origin.size(); j++)
-        target[i][j]*=coeff;
 
-        int inner_size = origin[i][i].cols();
-        for(int k=0; k<inner_size; k++)
-        target[i][i].coeffRef(k, k)+=1;
-    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+time_scheme::time_scheme(const time_scheme_config & tsc_) : tsc(tsc_)
+{
+    if(tsc.try_to_import) return;
+    load_time_conds(cc.TIME_DIR);
+    load_case_conds(cc.TIME_DIR);
+    load_writter_conds(cc.TIME_DIR);
+
+    MPI_Init(int *argc, char ***argv)
 }
 
 vector<vect> tsws::split_vect(const vect & origin)

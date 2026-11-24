@@ -2,6 +2,7 @@
 #define MPI_UTILS_
 
 #include "common.h"
+#include "eigen_parts.h"
 #include <mpi.h>
 
 vector<double> serializeSparseMatrixFlat(spmat & target);

@@ -4,15 +4,7 @@
 #include "common.h"
 #include "config_structures_ss.h"
 #include "space_scheme.h"
-
-struct subdomain_system
-{
-    spmat ii;
-    spmat ib;
-    spmat bb;
-    spmat gb_subd;
-    vector<point> gb_real_coord;
-};
+#include "eigen_parts.h"
 
 class space_matrix_assembler_io;
 class space_matrix_assembler

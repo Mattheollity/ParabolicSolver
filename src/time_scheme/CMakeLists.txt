@@ -8,10 +8,13 @@ add_library(
     time_scheme
     STATIC
     src/time_scheme.cpp
+    src/time_step_boundary.cpp
+    src/time_step_subdomain.cpp
+    src/time_scheme_assembler.cpp
 )
 target_link_libraries(time_scheme PUBLIC space_scheme eigen-expokit::eexpokit)
 target_link_libraries(time_scheme PUBLIC common)
-target_link_libraries(time_scheme PRIVATE mpi_utils)
+target_link_libraries(time_scheme PUBLIC mpi_utils)
 
 target_include_directories(
     time_scheme

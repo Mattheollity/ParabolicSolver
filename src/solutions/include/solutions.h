@@ -8,13 +8,13 @@ double dimension_sine(const point &);
 
 struct dirichlet
 {
-    virtual double operator()(const point &) const = 0;
+    virtual double operator()(const point &, double t) const = 0;
 };
 
 struct const_dirichlet : dirichlet
 {
     double C;
-    double operator()(const point &) {return C;}
+    double operator()(const point &, double t) {return C;}
 };
 
 

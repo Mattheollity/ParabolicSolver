@@ -15,7 +15,7 @@ vector<double> serializeSparseMatrixFlat(const spmat & target) {
         int col_pos = position;
         position++;
 
-        for (Eigen::SparseMatrix<double>::InnerIterator it(target, col); it; ++it) {
+        for (spmat::InnerIterator it(target, col); it; ++it) {
             buffer[position] = it.row();
             buffer[position+1] = it.value();
             position+=2;

@@ -3,7 +3,16 @@
 
 #include "config_structures.h"
 #include "grid.h"
+#include "eigen_parts.h"
 #include "space_scheme.h"
+
+struct subdomain_system
+{
+    spmat ii;
+    spmat ib;
+    spmat bb;
+    spmat gb_subd;
+};
 
 struct space_scheme_config
 {

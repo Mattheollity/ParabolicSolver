@@ -20,3 +20,4 @@ target_include_directories(
 
 target_link_libraries(grid PUBLIC geometry)
 target_link_libraries(grid PUBLIC common)
+target_link_libraries(grid PUBLIC solutions)
