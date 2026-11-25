@@ -1,42 +1,14 @@
-cmake_minimum_required(VERSION 3.10)
-project(TimeScheme CXX)
-
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-set(CMAKE_CXX_STANDARD 17)
-
-add_library(
-    time_scheme
-    STATIC
+add_library(time_scheme STATIC
     src/time_scheme.cpp
-    src/time_step_boundary.cpp
     src/time_step_subdomain.cpp
+    src/time_step_boundary.cpp
     src/time_scheme_assembler.cpp
 )
-target_link_libraries(time_scheme PUBLIC space_scheme eigen-expokit::eexpokit)
-target_link_libraries(time_scheme PUBLIC common)
-target_link_libraries(time_scheme PUBLIC mpi_utils)
 
-target_include_directories(
-    time_scheme
-    PUBLIC
-    include
+target_include_directories(time_scheme PUBLIC include)
+
+target_link_libraries(time_scheme PUBLIC
+    common
+    space_scheme
+    mpi_utils
 )
-
-# add_executable(
-#     time_scheme_test
-#     tests/time_scheme.cpp
-# )
-# target_link_libraries(time_scheme_test PUBLIC time_scheme)
-# target_link_libraries(time_scheme_test PRIVATE Catch2::Catch2WithMain)
-
-# add_executable(
-#     schemeapprox
-#     src/scheme_approx.cpp
-# )
-# target_link_libraries(schemeapprox PUBLIC time_scheme)
-
-add_executable(
-    schemeconverg
-    src/scheme_converg.cpp
-)
-target_link_libraries(schemeconverg PUBLIC time_scheme)

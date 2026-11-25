@@ -1,131 +1,229 @@
 #include "time_scheme_assembler.h"
 
-time_scheme_assembler::time_scheme_assembler(const time_scheme_config & tsc_) : tsc(tsc_), MPI_is_active(0)
-{
-    
-}
+#include <mpi.h>
+#include <algorithm>
+#include <limits>
+#include <stdexcept>
+#include <cmath>
 
-void time_scheme_assembler::setup_solver(const vector<subdomain_system> & systems)
-{
-    thread_num = 0;
-    MPI_Initialized(&MPI_is_active);
 
-    if(MPI_is_active) reset_MPI(systems);
-    else
+time_scheme_assembler::time_scheme_assembler(
+    const grid_problem & gp_,
+    const time_scheme_config & tsc_
+) :
+gp(gp_),
+tsc(tsc_),
+current_time(tsc.start_time)
+{
+    int initialized = 0;
+
+    MPI_Initialized(&initialized);
+
+    if(initialized)
     {
-        int amount = systems.size();
-        subdomains_solvers.resize(amount);
-
-        for(int i=0;i<amount;i++)
-        subdomains_solvers[i] = time_step_subdomain(tsc);
-
-        for(int i=0;i<amount;i++)
-        subdomains_solvers[i].setup_time_step_solver(systems[i]);
+        MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+        MPI_Comm_size(MPI_COMM_WORLD, &process_count);
     }
 }
 
-void time_scheme_assembler::reset_MPI(const vector<subdomain_system> & systems)
+
+
+void time_scheme_assembler::setup_solver(
+    const space_matrix_assembler & sma
+)
 {
-    subdomains_per_MPI_threads.clear();
+    int amount = 0;
 
-    if(!MPI_is_active) return;
+    if(rank==0)
+    amount = sma.get_subdomain_systems().size();
 
-    MPI_Comm comm = MPI_COMM_WORLD;
-    int N_available_procs;
-    MPI_Comm_size(comm, &N_available_procs);
+    if(process_count>1)
+    MPI_Bcast(&amount, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
-    if(N_available_procs==1)
-    {
-        MPI_is_active=0;
-        return;
-    }
+    if(amount==0)
+    throw std::runtime_error("No subdomains");
 
-    N_available_procs--;
-    subdomains_per_MPI_threads.resize(N_available_procs);
-    
-    if(N_available_procs>=systems.size())
-        for(int i=0;i<systems.size();i++)
-        subdomains_per_MPI_threads[i].push_back(i);
-    else
-        for(int i=0,j=0; i<systems.size();i++,j++)
-        {
-            throw simple_error("NOT ENOUGHT MPI PROCS");
-            if(j==subdomains_per_MPI_threads.size()) j=0;
-            subdomains_per_MPI_threads[j].push_back(i);
-        }
-}
+    if(process_count>1 && process_count<amount+1)
+    throw std::runtime_error("Not enough MPI processes");
 
-void time_scheme_assembler::send_subdomain_systems(const vector<subdomain_system> & systems)
-{
-    MPI_Comm comm = MPI_COMM_WORLD;
 
-    for(int thread=1; thread<=subdomains_per_MPI_threads.size(); thread++)
-    {
-        int amount = subdomains_per_MPI_threads[thread-1].size();
-        MPI_Send(&amount, 1, MPI_INT, thread, 0, comm);
-    }
 
-    for(int thread=1; thread<=subdomains_per_MPI_threads.size(); thread++)
-    for(int i=0;i<subdomains_per_MPI_threads[thread-1].size(); i++)
-    {
-        int index = subdomains_per_MPI_threads[thread-1][i];
-        const subdomain_system & ss = systems[index];
-
-        sendMatrix(ss.ii, thread, 1+4*i, comm);
-        sendMatrix(ss.ib, thread, 2+4*i, comm);
-        sendMatrix(ss.bb, thread, 3+4*i, comm);
-        sendMatrix(ss.gb_subd, thread, 4+4*i, comm);   
-    }
-}
-
-void time_scheme_assembler::recv_subdomain_systems()
-{
     subdomains_solvers.clear();
+    boundary_solver.reset();
 
-    MPI_Comm comm = MPI_COMM_WORLD;
-    MPI_Comm_rank(comm, &thread_num);
+    T = 0.0;
 
-    int amount;
-    MPI_Recv(&amount, 1, MPI_INT, 0, 0, comm, MPI_STATUS_IGNORE);
-
-    for(int i=0;i<amount;i++)
+    if(rank==0)
     {
-        subdomain_system ss;
-        recvMatrix(ss.ii, 0, 1+4*i, comm);
-        recvMatrix(ss.ib, 0, 1+4*i, comm);
-        recvMatrix(ss.bb, 0, 1+4*i, comm);
-        recvMatrix(ss.gb_subd, 0, 1+4*i, comm);
-        subdomains_solvers[i] = time_step_subdomain(tsc);
-        subdomains_solvers[i].setup_time_step_solver(ss);
+        const auto & systems = sma.get_subdomain_systems();
+
+        vector<int> boundary_sizes;
+        boundary_sizes.reserve(systems.size());
+
+        for(const subdomain_system & ss : systems)
+        boundary_sizes.push_back(ss.bb.rows());
+
+        boundary_solver = std::make_unique<time_step_boundary>(
+            *tsc.scheme,
+            sma.get_base_boundary_system(),
+            boundary_sizes
+        );
     }
+
+    distribute_subdomain_systems(sma);
+
+    restart_solver();
 }
 
-void time_scheme_assembler::restart_solver(const vector<subdomain_values> & start_values)
+
+
+void time_scheme_assembler::restart_solver()
 {
-    if(MPI_is_active) send_subdomain_values(start_values);
-    else
+    current_time = tsc.start_time;
+    current_time_step = 0;
+
+    if(rank==0)
     {
-        int amount = start_values.size();
-        for(int i=0;i<amount;i++) subdomains_solvers[i].setup_first_solutions({start_values[i]});
+        current_values = gp.get_initial_values();
+
+        if(current_time!=0.0)
+        {
+            vector<subdomain_values> boundary_values =
+                gp.get_boundary_values(current_time);
+
+            for(int i=0; i<current_values.size(); i++)
+            current_values[i].global_boundary =
+                std::move(boundary_values[i].global_boundary);
+        }
     }
+
+    distribute_initial_values();
+
+    next_values.clear();
+    next_values.resize(current_values.size());
+
+    if(current_time>=tsc.end_time) return;
+
+    double new_T = compute_global_time_step();
+
+    new_T = std::min(new_T, tsc.end_time-current_time);
+
+    if(new_T!=T)
+    rebuild_time_step_systems(new_T);
 }
 
-void time_scheme_assembler::send_subdomain_values(const vector<subdomain_values> & values)
+
+
+double time_scheme_assembler::compute_global_time_step() const
 {
-    MPI_Comm comm = MPI_COMM_WORLD;
+    double local_T = std::numeric_limits<double>::infinity();
 
-    for(int thread=1; thread<=subdomains_per_MPI_threads.size(); thread++)
-    for(int i=0;i<subdomains_per_MPI_threads[thread-1].size(); i++)
+    for(int i=0; i<subdomains_solvers.size(); i++)
     {
-        int padding = 4*subdomains_per_MPI_threads[thread-1].size();
-        int index = subdomains_per_MPI_threads[thread-1][i];
-        const subdomain_system & ss = systems[index];
+        double subdomain_T =
+            subdomains_solvers[i].compute_local_time_step(
+                current_values[i]
+            );
 
-        sendMatrix(ss.ii, thread, 1+4*i, comm);
-        sendMatrix(ss.ib, thread, 2+4*i, comm);
-        sendMatrix(ss.bb, thread, 3+4*i, comm);
-        sendMatrix(ss.gb_subd, thread, 4+4*i, comm);   
+        if(!std::isfinite(subdomain_T) || subdomain_T<=0.0)
+        subdomain_T = 0.0;
+
+        local_T = std::min(local_T, subdomain_T);
     }
+
+    double global_T = local_T;
+
+    if(process_count>1)
+    MPI_Allreduce(
+        &local_T,
+        &global_T,
+        1,
+        MPI_DOUBLE,
+        MPI_MIN,
+        MPI_COMM_WORLD
+    );
+
+    if(!std::isfinite(global_T) || global_T<=0.0)
+    throw std::runtime_error("Invalid time step");
+
+    return global_T;
 }
 
-void time_step(vector<subdomain_values> &);
+
+
+void time_scheme_assembler::rebuild_time_step_systems(
+    double new_T
+)
+{
+    for(time_step_subdomain & solver : subdomains_solvers)
+    solver.setup_time_step_solver(new_T);
+
+    vector<vector<triplet>> schur =
+        collect_schur_complements();
+
+    if(rank==0)
+    boundary_solver->build_boundary_system(schur, new_T);
+
+    T = new_T;
+}
+
+
+
+void time_scheme_assembler::time_step()
+{
+    double remaining_time = tsc.end_time-current_time;
+
+    if(remaining_time<=0.0) return;
+
+    double new_T = T;
+
+    if(!tsc.scheme->static_time_step)
+    new_T = compute_global_time_step();
+
+    new_T = std::min(new_T, remaining_time);
+
+    if(new_T!=T)
+    rebuild_time_step_systems(new_T);
+
+
+
+    double next_time = current_time+T;
+
+    if(T==remaining_time)
+    next_time = tsc.end_time;
+
+    if(rank==0)
+    next_values = gp.get_boundary_values(next_time);
+
+    distribute_global_boundary_values();
+
+
+
+    vector<vect> rhs = collect_schur_rhs();
+
+    if(rank==0)
+    boundary_solver->solve(
+        current_values,
+        next_values,
+        rhs
+    );
+
+    distribute_local_boundary_values();
+
+
+
+    for(int i=0; i<subdomains_solvers.size(); i++)
+    subdomains_solvers[i].solve(
+        current_values[i],
+        next_values[i]
+    );
+
+    collect_inner_values();
+
+
+
+    current_values.swap(next_values);
+
+    current_time = next_time;
+    current_time_step++;
+}

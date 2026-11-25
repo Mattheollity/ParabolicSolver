@@ -11,6 +11,5 @@ target_include_directories(space_scheme PUBLIC
 
 target_link_libraries(space_scheme PUBLIC
     common
-    geometry
     grid_problem
 )

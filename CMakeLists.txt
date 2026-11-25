@@ -15,5 +15,7 @@ target_include_directories(common INTERFACE include/common)
 target_link_libraries(common INTERFACE OpenMP::OpenMP_CXX)
 target_link_libraries(common INTERFACE Eigen3::Eigen)
 
+add_subdirectory(src/utils/mpi_utils)
 add_subdirectory(src/grid_problem)
 add_subdirectory(src/computation/space_scheme)
+add_subdirectory(src/computation/time_scheme)

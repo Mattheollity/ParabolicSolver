@@ -1,45 +1,70 @@
 #ifndef TIME_SCHEME_ASSEMBLER_
 #define TIME_SCHEME_ASSEMBLER_
 
-#include "mpi_utils.h"
+#include "common.h"
+#include "config_structures_ts.h"
 #include "space_matrix_assembler.h"
-#include "time_step_boundary.h"
 #include "time_step_subdomain.h"
+#include "time_step_boundary.h"
+
 
 class time_scheme_assembler
-{   
-    int MPI_is_active;
-    int thread_num;
-    vector<vector<int>> subdomains_per_MPI_threads;
+{
+    const grid_problem & gp;
+    const time_scheme_config & tsc;
 
-    vector<time_step_subdomain> subdomains_solvers;
-    time_step_boundary boundary_solver;
+    int rank = 0;
+    int process_count = 1;
+
     int current_time_step = 0;
 
+    double current_time;
+    double T = 0.0;
+
+    vector<time_step_subdomain> subdomains_solvers;
+    unique_ptr<time_step_boundary> boundary_solver;
+
+    vector<subdomain_values> current_values;
+    vector<subdomain_values> next_values;
 
 
-    void add_subdomain(const subdomain_system &);
 
-    void reset_MPI(const vector<subdomain_system> & systems);
+    void distribute_subdomain_systems(
+        const space_matrix_assembler & sma
+    );
 
-    void send_subdomain_systems(const vector<subdomain_system> & systems);
-    void recv_subdomain_systems();
+    void distribute_initial_values();
 
-    void send_subdomain_values(const vector<subdomain_values> & values);
-    void recv_subdomain_values();
+    void rebuild_time_step_systems(double new_T);
 
-    
+    vector<vector<triplet>> collect_schur_complements() const;
+
+
+
+    double compute_global_time_step() const;
+
+    void distribute_global_boundary_values();
+
+    vector<vect> collect_schur_rhs() const;
+
+    void distribute_local_boundary_values();
+
+    void collect_inner_values();
 
 
 
     public:
 
-    const time_scheme_config & tsc;
+    time_scheme_assembler(
+        const grid_problem & gp_,
+        const time_scheme_config & tsc_
+    );
 
-    time_scheme_assembler(const time_scheme_config & tsc_);
-    void setup_solver(const vector<subdomain_system> & systems);
-    void restart_solver(const vector<subdomain_values> & start_value);
-    void time_step(vector<subdomain_values> &);
+    void setup_solver(const space_matrix_assembler & sma);
+
+    void restart_solver();
+
+    void time_step();
 };
 
 #endif

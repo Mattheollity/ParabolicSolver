@@ -1,52 +1,112 @@
 #include "time_step_subdomain.h"
 
-void time_step_subdomain::setup_time_step_solver(const subdomain_system & ss)
+#include <stdexcept>
+
+
+time_step_subdomain::time_step_subdomain(
+    const time_scheme & scheme_,
+    subdomain_system ss
+) :
+scheme(scheme_),
+space_system(std::move(ss)),
+solver(std::make_unique<SparseLU>())
+{}
+
+
+
+double time_step_subdomain::compute_local_time_step(
+    const subdomain_values & current
+) const
 {
-    tsc->scheme->build_next_time_step_system(ss, next_time);
-    tsc->scheme->build_current_time_step_system(ss, current_time);
+    return scheme.compute_local_time_step(space_system, current);
+}
+
+
+
+void time_step_subdomain::setup_time_step_solver(double T)
+{
+    scheme.build_current_time_step_system(space_system, current_time, T);
+    scheme.build_next_time_step_system(space_system, next_time, T);
+
+    if(next_time.ii.rows()==0) return;
+
+    next_time.ii.makeCompressed();
 
     solver->compute(next_time.ii);
+
+    if(solver->info()!=Eigen::Success)
+    throw std::runtime_error("Subdomain factorization failed");
 }
 
-void time_step_subdomain::setup_first_solutions(const vector<subdomain_values> & first_solutions)
+
+
+void time_step_subdomain::build_schur_complement(vector<triplet> & trp) const
 {
-    current_values = first_solutions;
-}
+    spmat schur = next_time.bb;
 
-void time_step_subdomain::build_schur_complement(vector<triplet> & trp)
-{
-    spmat schur_complement = next_time.bb - next_time.ib.transpose()*solver->solve(next_time.ib);
+    if(next_time.ii.rows()!=0 && next_time.bb.rows()!=0)
+    {
+        spmat X = solver->solve(next_time.bi);
 
-    trp.reserve(schur_complement.nonZeros());
+        schur -= next_time.ib*X;
+    }
 
-    for (int k = 0; k < schur_complement.outerSize(); ++k)
-    for (spmat::InnerIterator it(schur_complement, k); it; ++it)
+    trp.clear();
+    trp.reserve(schur.nonZeros());
+
+    for(int k=0; k<schur.outerSize(); k++)
+    for(spmat::InnerIterator it(schur, k); it; ++it)
     trp.emplace_back(it.row(), it.col(), it.value());
 }
 
-void time_step_subdomain::build_schur_rhs(vector<vect> & boundaries)
+
+
+vect time_step_subdomain::build_inner_rhs(
+    const subdomain_values & current
+) const
 {
-    for(int i=0;i<boundaries.size();i++)
-    boundaries[i] = next_time.bb - next_time.ib.transpose()*solver->solve(next_time.ib);
+    return current_time.ii*current.inner
+         + current_time.bi*current.local_boundary;
 }
 
-void time_step_subdomain::solve(vector<subdomain_values> & next_values)
+
+
+vect time_step_subdomain::build_schur_rhs(
+    const subdomain_values & current,
+    const subdomain_values & next
+) const
 {
-    for(int i=0;i<next_values.size();i++)
+    vect rhs = current_time.ib*current.inner
+             + current_time.bb*current.local_boundary
+             + current_time.gb_subd*current.global_boundary
+             - next_time.gb_subd*next.global_boundary;
+
+    if(next_time.ii.rows()!=0 && next_time.bb.rows()!=0)
     {
-        vect & y0 = current_values[i].inner;
-        vect & ylb0 = current_values[i].local_boundary;
-        vect & ygb0 = current_values[i].global_boundary;
+        vect inner_rhs = build_inner_rhs(current);
+        vect x = solver->solve(inner_rhs);
 
-        vect & y1 = next_values[i].inner;
-        vect & ylb1 = next_values[i].local_boundary;
-        vect & ygb1 = next_values[i].global_boundary;
-
-        vect rhs = current_time.ii*y0
-                   - current_time.ib*ylb0 - next_time.ib*ylb1 
-                   - current_time.bb*ygb0 - next_time.bb*ygb1;
-
-        y1 = solver->solve(rhs);
-        current_values[i] = next_values[i];
+        rhs -= next_time.ib*x;
     }
+
+    return rhs;
+}
+
+
+
+void time_step_subdomain::solve(
+    const subdomain_values & current,
+    subdomain_values & next
+) const
+{
+    if(next_time.ii.rows()==0)
+    {
+        next.inner.resize(0);
+        return;
+    }
+
+    vect rhs = build_inner_rhs(current)
+             - next_time.bi*next.local_boundary;
+
+    next.inner = solver->solve(rhs);
 }

@@ -2,30 +2,44 @@
 #define TIME_STEP_SUBDOMAIN_
 
 #include "common.h"
-#include "config_structures_ts.h"
 #include "time_scheme.h"
+
 
 class time_step_subdomain
 {
-    const time_scheme_config * tsc;
+    const time_scheme & scheme;
 
-    subdomain_system next_time;
+    subdomain_system space_system;
     subdomain_system current_time;
+    subdomain_system next_time;
 
-    shared_ptr<SparseLU> solver;
-    vector<subdomain_values> current_values;
+    unique_ptr<SparseLU> solver;
+
+    vect build_inner_rhs(
+        const subdomain_values & current
+    ) const;
+
+
 
     public:
-    
-    time_step_subdomain(const time_scheme_config & tsc_) : tsc(&tsc_) {};
-    time_step_subdomain(const time_step_subdomain & tss_) : tsc(tss_.tsc) {};
-    
-    void setup_time_step_solver(const subdomain_system &);
-    void setup_first_solutions(const vector<subdomain_values> & first_solutions);
 
-    void build_schur_complement(vector<triplet> &);
-    void build_schur_rhs(vector<vect> &);
-    void solve(vector<subdomain_values> &);
+    time_step_subdomain(const time_scheme &, subdomain_system);
+
+    double compute_local_time_step(const subdomain_values &) const;
+
+    void setup_time_step_solver(double T);
+
+    void build_schur_complement(vector<triplet> &) const;
+
+    vect build_schur_rhs(
+        const subdomain_values & current,
+        const subdomain_values & next
+    ) const;
+
+    void solve(
+        const subdomain_values & current,
+        subdomain_values & next
+    ) const;
 };
 
 #endif

@@ -1,27 +1,16 @@
-cmake_minimum_required(VERSION 3.10)
-project(ParabolicSolver_mpi_utils CXX)
-
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-set(CMAKE_CXX_STANDARD 17)
+find_package(MPI REQUIRED COMPONENTS CXX)
 
 set(MPI_CXX_COMPILER "/usr/bin/mpicxx.mpich"
     CACHE FILEPATH "MPICH C++ wrapper")
-set(MPI_HOME "/usr/lib/x86_64-linux-gnu/mpich"
-    CACHE PATH "MPICH installation prefix")
+set(MPI_HOME "/usr/lib/x86_64-linux-gnu/mpich")
 
-find_package(MPI REQUIRED COMPONENTS CXX)
-
-add_library(
-    mpi_utils
-    STATIC
+add_library(mpi_utils STATIC
     src/mpi_utils.cpp
 )
 
-target_include_directories(
-    mpi_utils
-    PUBLIC
-    include
-)
+target_include_directories(mpi_utils PUBLIC include)
 
-target_link_libraries(mpi_utils PUBLIC common)
-target_link_libraries(mpi_utils PUBLIC MPI::MPI_CXX)
+target_link_libraries(mpi_utils PUBLIC
+    common
+    MPI::MPI_CXX
+)

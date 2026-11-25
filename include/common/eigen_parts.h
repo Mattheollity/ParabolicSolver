@@ -13,7 +13,7 @@ typedef Eigen::VectorXd vect;
 typedef Eigen::Triplet<double> triplet;
 typedef Eigen::SparseLU<spmat> SparseLU;
 
-void concate_vector(const vector<vect> & vv, vect & v)
+inline void concate_vector(const vector<vect> & vv, vect & v)
 {
     vector<int> csum = {0};
     for(vect el : vv)
@@ -25,7 +25,7 @@ void concate_vector(const vector<vect> & vv, vect & v)
     v.block(csum[i], 0, csum[i+1]-csum[i], 1) = vv[i];
 }
 
-void split_vector(vector<vect> & vv, const vect & v)
+inline void split_vector(vector<vect> & vv, const vect & v)
 {
     vector<int> csum = {0};
     for(vect el : vv)
