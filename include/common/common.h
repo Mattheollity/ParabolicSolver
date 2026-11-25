@@ -37,14 +37,11 @@ using std::shared_ptr;
 typedef vector<double> point;
 typedef vector<int> voxel_point;
 
-class simple_error : public std::exception
+class simple_error : public std::runtime_error
 {
     public:
-    simple_error(string message)
-    {
-        std::cerr<<message<<endl;
-        std::exit(1);
-    }
-};
 
+    simple_error(string message) :
+    std::runtime_error(message) {};
+};
 #endif

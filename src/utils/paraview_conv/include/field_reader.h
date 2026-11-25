@@ -1,30 +1,43 @@
-
 #pragma once
 
-#include "problem_conditions.h"
+#include <array>
 #include <filesystem>
+#include <vector>
 
-class field_reader {
-public:
-    struct Field {
-        int step;
-        double time;
-        vect values;
+class field_reader
+{
+    struct subdomain
+    {
+        std::vector<int> inner, boundary, global_boundary;
     };
 
-    field_reader(const grid_conds& grid,
-                const time_integr_conds& time,
-                const std::filesystem::path& directory);
+    std::vector<subdomain> subdomains;
+    std::vector<int> owner;
+    std::vector<std::size_t> vtk_index;
+    std::filesystem::path directory;
+    double boundary_value;
 
-    std::vector<Field> readFields() const;
+    public:
 
-private:
-    voxel_point dimensions_;
-    int steps_;
-    int writeEach_;
-    double startTime_;
-    double dt_;
-    std::filesystem::path directory_;
+    struct Grid
+    {
+        std::array<std::size_t, 3> dimensions;
+        std::array<double, 3> origin, spacing;
+    };
 
-    vect readField(int step) const;
+    struct Field
+    {
+        int step;
+        double time;
+        double T;
+        std::vector<double> values;
+    };
+
+    Grid grid;
+
+    field_reader(const std::filesystem::path & case_dir);
+
+    std::vector<int> find_steps() const;
+
+    Field readField(int step) const;
 };

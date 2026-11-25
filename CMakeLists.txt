@@ -19,3 +19,26 @@ add_subdirectory(src/utils/mpi_utils)
 add_subdirectory(src/grid_problem)
 add_subdirectory(src/computation/space_scheme)
 add_subdirectory(src/computation/time_scheme)
+add_subdirectory(src/utils/file_io)
+add_subdirectory(src/utils/paraview_conv)
+
+add_library(parabolic_solver STATIC
+    src/parabolic_solver.cpp
+)
+
+target_include_directories(parabolic_solver PUBLIC include)
+
+target_link_libraries(parabolic_solver PUBLIC
+    common
+    file_io
+)
+
+
+
+add_executable(ParabolicSolver
+    src/main.cpp
+)
+
+target_link_libraries(ParabolicSolver PRIVATE
+    parabolic_solver
+)

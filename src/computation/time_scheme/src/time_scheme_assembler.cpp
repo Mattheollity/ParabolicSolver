@@ -70,7 +70,7 @@ void time_scheme_assembler::setup_solver(
         );
     }
 
-    distribute_subdomain_systems(sma);
+    distribute_subdomain_systems(sma, amount);
 
     restart_solver();
 }

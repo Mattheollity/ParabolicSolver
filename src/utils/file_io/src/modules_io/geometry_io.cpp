@@ -1,97 +1,253 @@
 #include "geometry_io.h"
 
-//template<typename DATATYPE>
-//void build_vector_from_strings(vector<DATATYPE> &, std::ifstream & file);
+#include <iomanip>
+#include <limits>
+#include <algorithm>
 
-void geometry_io::import_geometry(geometry & geometry_obj, string path)
+
+namespace
 {
-    import_domain(geometry_obj, path);
-    import_subdomains(geometry_obj, path);
-}
-
-void geometry_io::import_domain(geometry & geometry_obj, string path)
-{
-    string vertexes_path = path+"/vertexes";
-    auto file = load_file(vertexes_path);
-
-    build_vector_from_strings("vertexes", geometry_obj.vertexes, file);
-    for(auto v : geometry_obj.vertexes)
+    void write_indexes(
+        string FIELD,
+        const vector<int> & indexes,
+        std::ofstream & file
+    )
     {
-        if(v.subdomain==-1) geometry_obj.boundary.push_back(v.index);
-        else geometry_obj.inner.push_back(v.index);
-    }
+        file<<FIELD<<"\n";
+        file<<"amount "<<indexes.size()<<"\n";
 
-    string permutation_path = path+"/vertexes";
-    auto file2 = load_file(permutation_path);
+        for(int i : indexes)
+        file<<i<<" ";
 
-    build_vector("permutation", geometry_obj.permutation, file);
-}
-
-void geometry_io::import_subdomains(geometry & geometry_obj, string path)
-{
-    auto & subdomains = geometry_obj.subdomains;
-    for(int i=0; i<subdomains.size(); i++)
-    {
-        auto gc = geometry_obj.gc;
-
-        int ibuf;
-        int ibuf2;
-        double dbuf;
-        string buf;
-
-        subdomain & s = subdomains[i];
-        string subdomain_path = path+"/"+to_string(i);
-        auto file = load_file(subdomain_path);
-
-        load_pair_of_vectors<voxel_point>("vbbox", gc.dim, file);
-        build_vector<int>("inner_indexes", geometry_obj.inner, file);
-        build_vector<int>("boundary_indexes", geometry_obj.boundary, file);
+        file<<"\n";
     }
 }
 
-// void geometry_io::export_grid() const
-// {
-//     fs::copy_file(GRID_DIR+"/grid_conds", GRID_DIR+"/exp_grid_conds", fs::copy_options::overwrite_existing);
-//     export_domain();
-//     export_subdomains();
-// }
 
-// void geometry_io::export_domain() const
-// {
-//     std::ofstream file(GRID_DIR+"/vertexes");
-//     file<<"amount "<<vertexes.size()<<endl;
-//     for(vertex v : vertexes) file<<v.string_export()<<endl;
-//     file.close();
 
-//     std::ofstream file2(GRID_DIR+"/permutation");
-//     for(int i : permutation) file2<<i<<" ";
-//     file2.close();
-// }
+void geometry_io::import_geometry(
+    geometry & g,
+    string path
+)
+{
+    import_domain(g, path);
+    import_subdomains(g, path);
 
-// void geometry_io::export_subdomains() const
-// {
-//     for(subdomain s : subdomains)
-//     {
-//         std::ofstream file(GRID_DIR+"/"+to_string(s.index));
+    vector<int> permutation = g.permutation;
 
-//         file<<"vbbox"<<endl;
-//         for(auto i : s.N_bbox.first) file<<i<<" ";
-//         file<<endl;
-//         for(auto i : s.N_bbox.second) file<<i<<" ";
-//         file<<endl;
+    g.build_permutation_vector();
 
-//         file<<"neighboring_subdomains"<<endl;
-//         file<<"amount "<<s.neighboring_subdomains.size()<<endl;
-//         for(int i : s.neighboring_subdomains) file<<i<<" ";
-//         file<<endl;
+    if(g.permutation!=permutation)
+    throw simple_error("Invalid geometry permutation");
 
-//         file<<"inner_indexes"<<endl;
-//         file<<"amount "<<s.inner.size()<<endl;
-//         for(auto i : s.inner) file<<i<<endl;
-//         file<<"boundary_indexes"<<endl;
-//         file<<"amount "<<s.boundary.size()<<endl;
-//         for(auto i : s.boundary) file<<i<<endl;
+    g.subdomain_intr.clear();
+    g.boundaries_intr = {};
 
-//         file.close();
-//     }
-// }
+    g.build_interactions();
+}
+
+
+
+void geometry_io::import_domain(
+    geometry & g,
+    string path
+)
+{
+    auto file = load_file(path+"/vertexes");
+
+    build_vector_from_strings(
+        "vertexes",
+        g.vertexes,
+        file
+    );
+
+    g.inner.clear();
+    g.boundary.clear();
+
+    for(int i=0; i<g.vertexes.size(); i++)
+    {
+        const vertex & v = g.vertexes[i];
+
+        if(v.index!=i)
+        throw simple_error("Invalid vertex index");
+
+        for(int j : v.neighbors_indexes)
+        if(j<0 || j>=g.vertexes.size())
+        throw simple_error("Invalid neighbor index");
+
+        if(v.subdomain==-1)
+        g.boundary.push_back(v.index);
+        else
+        g.inner.push_back(v.index);
+    }
+
+    auto permutation_file = load_file(path+"/permutation");
+
+    build_vector(
+        "permutation",
+        g.permutation,
+        permutation_file
+    );
+}
+
+
+
+void geometry_io::import_subdomains(
+    geometry & g,
+    string path
+)
+{
+    auto file = load_file(path+"/subdomains");
+
+    int amount = load_int("amount", file);
+
+    if(amount<=0)
+    throw simple_error("Invalid subdomains amount");
+
+    g.subdomains.resize(amount);
+
+    for(int i=0; i<amount; i++)
+    {
+        auto subdomain_file = load_file(path+"/"+to_string(i));
+
+        subdomain & s = g.subdomains[i];
+
+        s.index = load_int("index", subdomain_file);
+
+        if(s.index!=i)
+        throw simple_error("Invalid subdomain index");
+
+        build_vector("inner", s.inner, subdomain_file);
+
+        build_vector("boundary", s.boundary, subdomain_file);
+
+        build_vector(
+            "global_boundary",
+            s.global_boundary,
+            subdomain_file
+        );
+    }
+
+    vector<int> ownership(g.vertexes.size(), 0);
+
+    for(const subdomain & s : g.subdomains)
+    {
+        for(const auto * indexes : {&s.inner, &s.boundary})
+        {
+            if(!std::is_sorted(indexes->begin(), indexes->end()))
+            throw simple_error("Unsorted subdomain indexes");
+
+            for(int i : *indexes)
+            {
+                if(i<0 || i>=g.vertexes.size())
+                throw simple_error("Invalid subdomain vertex");
+
+                if(g.vertexes[i].subdomain!=s.index)
+                throw simple_error("Invalid vertex ownership");
+
+                ownership[i]++;
+            }
+        }
+
+        if(!std::is_sorted(
+            s.global_boundary.begin(),
+            s.global_boundary.end()
+        ))
+        throw simple_error("Unsorted global boundary");
+
+        for(int i : s.global_boundary)
+        {
+            if(i<0 || i>=g.vertexes.size())
+            throw simple_error("Invalid boundary vertex");
+
+            if(g.vertexes[i].subdomain!=-1)
+            throw simple_error("Invalid global boundary");
+        }
+    }
+
+    for(int i : g.inner)
+    if(ownership[i]!=1)
+    throw simple_error("Invalid subdomain decomposition");
+}
+
+
+
+void geometry_io::export_geometry(
+    const geometry & g,
+    string path
+) const
+{
+    fs::create_directories(path);
+
+    export_domain(g, path);
+    export_subdomains(g, path);
+}
+
+
+
+void geometry_io::export_domain(
+    const geometry & g,
+    string path
+) const
+{
+    std::ofstream file(path+"/vertexes");
+
+    if(!file)
+    throw simple_error("Cannot export vertexes");
+
+    file<<"vertexes\n";
+    file<<"amount "<<g.vertexes.size()<<"\n";
+
+    for(const vertex & v : g.vertexes)
+    file<<v.string_export()<<"\n";
+
+
+
+    std::ofstream permutation_file(path+"/permutation");
+
+    if(!permutation_file)
+    throw simple_error("Cannot export permutation");
+
+    write_indexes(
+        "permutation",
+        g.permutation,
+        permutation_file
+    );
+}
+
+
+
+void geometry_io::export_subdomains(
+    const geometry & g,
+    string path
+) const
+{
+    std::ofstream file(path+"/subdomains");
+
+    if(!file)
+    throw simple_error("Cannot export subdomains");
+
+    file<<"amount "<<g.subdomains.size()<<"\n";
+
+    for(const subdomain & s : g.subdomains)
+    {
+        std::ofstream subdomain_file(
+            path+"/"+to_string(s.index)
+        );
+
+        if(!subdomain_file)
+        throw simple_error("Cannot export subdomain");
+
+        subdomain_file<<"index "<<s.index<<"\n";
+
+        write_indexes("inner", s.inner, subdomain_file);
+
+        write_indexes("boundary", s.boundary, subdomain_file);
+
+        write_indexes(
+            "global_boundary",
+            s.global_boundary,
+            subdomain_file
+        );
+    }
+}

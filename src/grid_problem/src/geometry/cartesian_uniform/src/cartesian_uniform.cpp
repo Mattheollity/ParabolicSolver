@@ -50,4 +50,5 @@ void cartesian_uniform::setup_geometry()
     fill_domain();
     setup_subdomains();
     build_permutation_vector();
+    build_interactions();
 }

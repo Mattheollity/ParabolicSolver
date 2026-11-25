@@ -5,6 +5,15 @@
 #include "space_scheme.h"
 #include "config_structures_ss.h"
 
-void build_anisotrop_laplace(unique_ptr<anisotrop_laplace> &, std::ifstream & file);
+
+void build_anisotrop_laplace(
+    unique_ptr<anisotrop_laplace> & ss,
+    std::ifstream & file
+);
+
+void write_anisotrop_laplace(
+    const anisotrop_laplace & ss,
+    std::ofstream & file
+);
 
 #endif

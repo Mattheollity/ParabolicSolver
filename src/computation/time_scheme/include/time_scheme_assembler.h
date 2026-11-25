@@ -7,9 +7,12 @@
 #include "time_step_subdomain.h"
 #include "time_step_boundary.h"
 
+struct time_scheme_io;
 
 class time_scheme_assembler
 {
+    friend time_scheme_io;
+
     const grid_problem & gp;
     const time_scheme_config & tsc;
 
@@ -30,8 +33,9 @@ class time_scheme_assembler
 
 
     void distribute_subdomain_systems(
-        const space_matrix_assembler & sma
-    );
+    const space_matrix_assembler & sma,
+    int amount
+);
 
     void distribute_initial_values();
 
@@ -65,6 +69,16 @@ class time_scheme_assembler
     void restart_solver();
 
     void time_step();
+
+    double get_current_time() const
+{
+    return current_time;
+}
+
+int get_current_time_step() const
+{
+    return current_time_step;
+}
 };
 
 #endif

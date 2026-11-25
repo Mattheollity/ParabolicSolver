@@ -54,3 +54,14 @@ void weighted_time_scheme::build_current_time_step_system(
     tss.bb = iB + a*ss.bb;
     tss.gb_subd = a*ss.gb_subd;
 }
+
+void weighted_time_scheme::build_boundary_time_step_systems(
+    const spmat & ss,
+    spmat & current_time,
+    spmat & next_time,
+    double T
+) const
+{
+    current_time = -(1.0-theta)*T*ss;
+    next_time = theta*T*ss;
+}

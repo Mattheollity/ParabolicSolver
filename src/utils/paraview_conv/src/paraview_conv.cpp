@@ -1,37 +1,48 @@
-
 #include "paraview_conv.h"
 #include "field_reader.h"
 #include "vtk_writer.h"
-#include "file_io.h"
 
-void ParaViewConverter::convert(
-    const std::filesystem::path& gridFile,
-    const std::filesystem::path& timeFile,
-    const std::filesystem::path& fieldsDirectory,
-    const std::filesystem::path& outputDirectory) {
+#include <iostream>
+#include <stdexcept>
 
-    const auto grid = load_grid_conds(gridFile.string());
-    const auto time = load_tic(timeFile.string());
+namespace fs = std::filesystem;
 
-    field_reader reader(grid, time, fieldsDirectory);
-    VTKWriter writer(grid, outputDirectory);
+void ParaViewConverter::convert(const fs::path & case_dir, const fs::path & output_dir)
+{
+    field_reader reader(case_dir);
+    VTKWriter writer(reader.grid, output_dir);
+    std::vector<VTKWriter::Layer> layers;
 
-    writer.write(reader.readFields());
+    for(int step : reader.find_steps())
+    {
+        auto field = reader.readField(step);
+        if(!layers.empty() && field.time<=layers.back().time)
+        throw std::runtime_error("Non-increasing physical time");
+        writer.writeVTI(field);
+        layers.push_back({field.step, field.time});
+    }
+    writer.writePVD(layers);
 }
 
-int main(int argc, char* argv[]) {
-    if (argc != 5) {
-        std::cerr << "Usage: converter <grid> <tic> <fields_dir> <output_dir>\n";
+
+int main(int argc, char ** argv)
+{
+    if(argc!=2 && argc!=3)
+    {
+        std::cerr<<"Usage: pvconv <case_directory> [output_directory]\n";
         return 1;
     }
 
-    try {
-        ParaViewConverter::convert(argv[1], argv[2], argv[3], argv[4]);
+    try
+    {
+        fs::path case_dir(argv[1]);
+        fs::path output_dir = argc==3 ? fs::path(argv[2]) : case_dir/"paraview";
+        ParaViewConverter::convert(case_dir, output_dir);
     }
-    catch (const std::exception& e) {
-        std::cerr << "Conversion failed: " << e.what() << '\n';
+    catch(const std::exception & e)
+    {
+        std::cerr<<"Conversion failed: "<<e.what()<<"\n";
         return 1;
     }
-
     return 0;
 }

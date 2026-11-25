@@ -1,39 +1,36 @@
-#include "common.h"
-#include "file_io.h"
-#include "poisson.h"
-#include "problem_conditions.h"
-#include "approx.h"
-#include "time_scheme.h"
-#include <omp.h>
+#include "parabolic_solver.h"
 
-int main()
+#include <mpi.h>
+#include <iostream>
+
+
+int main(int argc, char ** argv)
 {
-    string gc_file, tic_file, appr_file;
-    int ntr;
-    cout<<"Grid conds: ";
-    cin>>gc_file;
-    cout<<"Time integr conds: ";
-    cin>>tic_file;
-    cout<<"Approx conds: ";
-    cin>>appr_file;
-    cout<<"OMP THREADS NUM: ";
-    cin>>ntr;
+    MPI_Init(&argc, &argv);
 
-    omp_set_num_threads(ntr);
+    int rank;
 
-    grid_conds gc = load_grid_conds(gc_file);
-    grid g(gc);
-    time_integr_conds tic = load_tic(tic_file);
-    tic.set_zero_time_data(trip_sin, g.get_inner_points());
-    
-    approx appr = load_approx_conds(appr_file);
-    appr.approx_func = approx_func;
-    appr.dirichlet = dirich_boundary_conds;
-    appr.h = g.get_h();
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-    poisson_system ps(g, appr);
-    tsws solver(ps.get_system(), tic);
-    solver.solve();
+    if(argc!=2)
+    {
+        if(rank==0)
+        std::cerr<<"Usage: "<<argv[0]<<" <case_directory>\n";
+
+        MPI_Finalize();
+
+        return 1;
+    }
+
+    {
+        parabolic_solver solver(argv[1]);
+
+        solver.setup_solver();
+
+        solver.solve();
+    }
+
+    MPI_Finalize();
 
     return 0;
 }
