@@ -15,5 +15,4 @@ target_include_directories(common INTERFACE include/common)
 target_link_libraries(common INTERFACE OpenMP::OpenMP_CXX)
 target_link_libraries(common INTERFACE Eigen3::Eigen)
 
-add_subdirectory(src/grid_problem/src/solutions)
-add_subdirectory(src/grid_problem/src/geometry)
+add_subdirectory(src/grid_problem)

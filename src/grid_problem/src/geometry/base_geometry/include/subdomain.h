@@ -12,4 +12,11 @@ struct subdomain
     vector<int> global_boundary;
 };
 
+struct subdomain_coordinates
+{
+    vector<const point *> inner;
+    vector<const point *> boundary;
+    vector<const point *> global_boundary;
+};
+
 #endif

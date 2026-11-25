@@ -5,6 +5,7 @@ add_library(
     STATIC
     base_geometry/src/vertex.cpp
     base_geometry/src/geometry.cpp
+    base_geometry/src/interactions.cpp
     cartesian_uniform/src/cartesian_uniform.cpp
     cartesian_uniform/src/dim_iterator.cpp
     cartesian_uniform/src/cartesian_uniform_creation.cpp

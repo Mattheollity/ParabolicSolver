@@ -38,7 +38,30 @@ int geometry::find_local_index(int i, const vector<int> & local) const
     return it - local.begin();
 }
 
+vector<subdomain_coordinates> geometry::get_subdomain_coordinates() const
+{
+    vector<subdomain_coordinates> coordinates(subdomains.size());
 
+    for(const subdomain & s : subdomains)
+    {
+        subdomain_coordinates & c = coordinates[s.index];
+
+        c.inner.reserve(s.inner.size());
+        c.boundary.reserve(s.boundary.size());
+        c.global_boundary.reserve(s.global_boundary.size());
+
+        for(int i : s.inner)
+        c.inner.push_back(&vertexes[i].real_coord);
+
+        for(int i : s.boundary)
+        c.boundary.push_back(&vertexes[i].real_coord);
+
+        for(int i : s.global_boundary)
+        c.global_boundary.push_back(&vertexes[i].real_coord);
+    }
+
+    return coordinates;
+}
 
 point geometry::compute_abs_h(const point & a, const point & b) const
 {
