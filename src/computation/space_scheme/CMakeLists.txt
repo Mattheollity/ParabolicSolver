@@ -1,21 +1,16 @@
-cmake_minimum_required(VERSION 3.10)
-project(PoissonApprox CXX)
+cmake_minimum_required(VERSION 3.20)
 
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-set(CMAKE_CXX_STANDARD 17)
-
-add_library(
-    space_scheme
-    STATIC
-    src/space_matrix_assembler.cpp
+add_library(space_scheme STATIC
     src/space_scheme.cpp
+    src/space_matrix_assembler.cpp
 )
 
-target_link_libraries(space_scheme PUBLIC common)
-target_link_libraries(space_scheme PUBLIC grid)
-
-target_include_directories(
-    space_scheme
-    PUBLIC
+target_include_directories(space_scheme PUBLIC
     include
+)
+
+target_link_libraries(space_scheme PUBLIC
+    common
+    geometry
+    grid_problem
 )

@@ -26,6 +26,7 @@ struct subdomain_interaction
 {
     interaction ii;
     interaction ib;
+    interaction bi;
     interaction bb;
     interaction global_gb;
 };

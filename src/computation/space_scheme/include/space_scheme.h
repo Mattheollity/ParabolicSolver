@@ -8,7 +8,7 @@ struct space_scheme
 {
     protected:
 
-    point compute_abs_h(const point & base, const point & sub) const;
+    point compute_h(const point & base, const point & sub) const;
 
     public:
 

@@ -23,6 +23,7 @@ void geometry::build_subdomain_interaction(int i)
 
     build_part_of_subdomain_interaction(si.ii, s.inner, s.inner);
     build_part_of_subdomain_interaction(si.ib, s.inner, s.boundary);
+    build_part_of_subdomain_interaction(si.bi, s.boundary, s.inner);
     build_part_of_subdomain_interaction(si.bb, s.boundary, s.boundary);
     build_part_of_subdomain_interaction(si.global_gb, s.global_boundary, s.boundary);
 }

@@ -16,3 +16,4 @@ target_link_libraries(common INTERFACE OpenMP::OpenMP_CXX)
 target_link_libraries(common INTERFACE Eigen3::Eigen)
 
 add_subdirectory(src/grid_problem)
+add_subdirectory(src/computation/space_scheme)
